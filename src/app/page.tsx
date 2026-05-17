@@ -239,6 +239,14 @@ export default function Home() {
   const clientRenderedMetaCount = results.filter(r => r.diffs?.some((d: any) => d.status === 'missing_initially')).length;
   const clientMetaPercent = totalScanned > 0 ? Math.round((clientRenderedMetaCount / totalScanned) * 100) : 0;
 
+  // Check if any audited page has bundled heavy DOM libraries
+  const detectedSelectorEngineResult = results.find(r => {
+    const selectorAudit = r.lighthouse?.audits?.find((a: any) => a.id === 'selector-engine');
+    return selectorAudit && selectorAudit.score < 1.0;
+  });
+  const selectorAuditInfo = detectedSelectorEngineResult?.lighthouse?.audits?.find((a: any) => a.id === 'selector-engine');
+  const hasSelectorEngineWarning = !!detectedSelectorEngineResult;
+
   const filteredResults = results.filter(r => {
     if (filterSeverity === 'all') return true;
     if (filterSeverity === 'ok') return r.severity === 'OK';
@@ -383,6 +391,65 @@ export default function Home() {
               <span className="label">High Risk Pages</span>
             </div>
           </div>
+
+          {/* Action Alert Banner for Selector Engines */}
+          {hasSelectorEngineWarning && selectorAuditInfo && (
+            <div style={{
+              backgroundColor: 'rgba(239, 68, 68, 0.08)',
+              border: '1px dashed var(--danger)',
+              padding: '1.25rem',
+              borderRadius: '12px',
+              marginBottom: '1.5rem',
+              color: 'var(--text-primary)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5rem',
+              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.05)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '700', color: 'var(--danger)', fontSize: '1rem' }}>
+                <ShieldAlert size={20} />
+                ⚠️ Performance Alert: Client-Side DOM Selector Engine Detected
+              </div>
+              <p style={{ fontSize: '0.95rem', margin: 0, lineHeight: '1.5', color: 'var(--text-secondary)' }}>
+                One or more scanned pages are bundling heavy DOM selector libraries client-side. Modern browsers support highly optimized, compiled native CSS selector engines (<code>querySelectorAll</code>) that are significantly faster.
+                To prevent rendering and hydration bottlenecks, consider removing this overhead from your client bundles.
+              </p>
+              <div style={{ 
+                backgroundColor: 'var(--bg-secondary)', 
+                border: '1px solid var(--border)', 
+                padding: '0.75rem 1rem', 
+                borderRadius: '8px', 
+                fontSize: '0.85rem',
+                marginTop: '0.25rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.25rem'
+              }}>
+                <span style={{ fontWeight: '700', color: 'var(--accent)' }}>💡 Recommended Architecture:</span>
+                <span>
+                  If you require a fast headless DOM parser and selector resolver for server-side HTML scraping or headless testing in Node.js, we highly recommend leveraging NWSAPI:
+                </span>
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                  <a 
+                    href="https://www.npmjs.com/package/nwsapi" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    style={{ color: 'var(--accent)', textDecoration: 'underline', fontWeight: '600' }}
+                  >
+                    📦 Download NWSAPI via NPM
+                  </a>
+                  <a 
+                    href="https://github.com/dperini/nwsapi" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    style={{ color: 'var(--accent)', textDecoration: 'underline', fontWeight: '600' }}
+                  >
+                    💻 NWSAPI Github Repository
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Results Listings */}
           <div className="card">
