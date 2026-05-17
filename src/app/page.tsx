@@ -448,8 +448,9 @@ export default function Home() {
       {/* Header */}
       <header className="header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1>HydraSEO - Next.js Metadata Visibility Scanner</h1>
-          <p>Dual-Phase SEO Visibility Auditor & simulated Insights performance suite.</p>
+          <h1 style={{ background: 'linear-gradient(135deg, #a5b4fc, #6366f1, #4f46e5)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontSize: '2.75rem', fontWeight: 800 }}>HydraSEO</h1>
+          <p style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '0.25rem' }}>Enterprise Technical SEO Auditor & Core Web Vitals Suite</p>
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>Empowering engineering teams with high-speed SSR diagnostics, hydration mismatch audits, and cross-environment comparative insights.</p>
         </div>
         <div>
           {user ? (
@@ -465,17 +466,18 @@ export default function Home() {
               </div>
               <button 
                 onClick={handleLogout}
+                className="btn btn-secondary"
                 style={{ 
                   marginLeft: '0.5rem',
-                  padding: '0.25rem 0.6rem', 
+                  padding: '0.4rem 1.25rem', 
                   fontSize: '0.75rem', 
-                  fontWeight: 700, 
-                  backgroundColor: 'transparent', 
-                  border: '1px solid var(--border)', 
-                  borderRadius: '6px', 
+                  borderRadius: '9999px', 
                   color: 'var(--danger)', 
+                  border: '1.5px solid var(--danger)',
                   cursor: 'pointer',
-                  transition: 'all 0.2s' 
+                  boxShadow: 'none',
+                  textTransform: 'none',
+                  height: '32px'
                 }}
               >
                 Log Out
@@ -484,26 +486,27 @@ export default function Home() {
           ) : (
             <button 
               onClick={() => setShowAuthModal(true)}
-              className="btn"
+              className="btn btn-secondary"
               style={{ 
                 display: 'flex', 
                 alignItems: 'center', 
                 gap: '0.5rem', 
-                padding: '0.5rem 1rem', 
-                borderRadius: '10px', 
-                fontWeight: 700, 
-                fontSize: '0.85rem',
-                backgroundColor: '#ffffff',
-                color: '#1f2937',
-                border: '1px solid #e5e7eb',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                padding: '0.4rem 1.5rem', 
+                borderRadius: '9999px', 
+                fontSize: '0.8rem',
+                backgroundColor: 'transparent',
+                color: 'var(--accent)',
+                border: '1.5px solid var(--accent)',
+                boxShadow: 'none',
+                textTransform: 'none',
+                height: '36px'
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#b6c4ff"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34d399"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#fbbf24"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#f87171"/>
               </svg>
               Sign in with Google
             </button>
@@ -535,16 +538,16 @@ export default function Home() {
             className="btn" 
             onClick={handleScanToggle}
             disabled={!urlInput}
-            style={{ height: '48px', gap: '0.5rem' }}
+            style={{ height: '48px', gap: '0.5rem', borderRadius: '9999px', padding: '0 2.25rem' }}
           >
             {isScanning ? (
               <>
-                <Square size={16} fill="white" />
+                <Square size={16} fill="currentColor" />
                 Stop Audits
               </>
             ) : (
               <>
-                <Play size={16} fill="white" />
+                <Play size={16} fill="currentColor" />
                 Start Scan
               </>
             )}
@@ -671,28 +674,32 @@ export default function Home() {
                       className="btn" 
                       style={{ 
                         flex: 1, 
-                        padding: '0.4rem 0.75rem', 
-                        fontSize: '0.8rem', 
-                        fontWeight: 700, 
-                        borderRadius: '6px', 
+                        padding: '0.4rem 1rem', 
+                        fontSize: '0.75rem', 
+                        borderRadius: '9999px', 
                         border: 'none', 
-                        cursor: 'pointer' 
+                        cursor: 'pointer',
+                        textTransform: 'none',
+                        boxShadow: 'none',
+                        height: '32px'
                       }}
                     >
                       Restore Report
                     </button>
                     <button 
                       onClick={() => deleteSavedScan(scan.id)}
+                      className="btn btn-secondary"
                       style={{ 
-                        padding: '0.4rem 0.75rem', 
-                        fontSize: '0.8rem', 
-                        fontWeight: 700, 
-                        borderRadius: '6px', 
-                        border: '1px solid var(--border)', 
-                        backgroundColor: 'transparent',
+                        padding: '0.4rem 1rem', 
+                        fontSize: '0.75rem', 
+                        borderRadius: '9999px', 
                         color: 'var(--danger)',
+                        border: '1.5px solid var(--danger)',
+                        backgroundColor: 'transparent',
                         cursor: 'pointer',
-                        transition: 'background-color 0.2s'
+                        textTransform: 'none',
+                        boxShadow: 'none',
+                        height: '32px'
                       }}
                     >
                       Delete
@@ -745,7 +752,7 @@ export default function Home() {
                 className="btn" 
                 onClick={handleCompare}
                 disabled={!compareSourceId || !compareTargetId}
-                style={{ height: '42px' }}
+                style={{ height: '42px', borderRadius: '9999px', textTransform: 'none', padding: '0 1.5rem', boxShadow: 'none' }}
               >
                 Analyze Differences
               </button>
@@ -991,44 +998,130 @@ export default function Home() {
                 <button 
                   onClick={() => setFilterSeverity('all')}
                   className="btn" 
-                  style={{ padding: '0.4rem 0.85rem', fontSize: '0.85rem', backgroundColor: filterSeverity === 'all' ? 'var(--accent)' : 'var(--bg-tertiary)' }}
+                  style={{ 
+                    padding: '0.4rem 1rem', 
+                    fontSize: '0.8rem', 
+                    borderRadius: '16px',
+                    boxShadow: 'none',
+                    textTransform: 'none',
+                    height: '32px',
+                    backgroundColor: filterSeverity === 'all' ? 'var(--accent)' : 'var(--bg-tertiary)',
+                    color: filterSeverity === 'all' ? '#121318' : 'var(--text-secondary)',
+                    border: filterSeverity === 'all' ? 'none' : '1px solid var(--border)'
+                  }}
                 >
                   All Pages
                 </button>
                 <button 
                   onClick={() => setFilterSeverity('ok')}
                   className="btn" 
-                  style={{ padding: '0.4rem 0.85rem', fontSize: '0.85rem', backgroundColor: filterSeverity === 'ok' ? 'var(--success)' : 'var(--bg-tertiary)' }}
+                  style={{ 
+                    padding: '0.4rem 1rem', 
+                    fontSize: '0.8rem', 
+                    borderRadius: '16px',
+                    boxShadow: 'none',
+                    textTransform: 'none',
+                    height: '32px',
+                    backgroundColor: filterSeverity === 'ok' ? 'rgba(52, 211, 153, 0.15)' : 'var(--bg-tertiary)',
+                    color: filterSeverity === 'ok' ? 'var(--success)' : 'var(--text-secondary)',
+                    border: filterSeverity === 'ok' ? '1px solid var(--success)' : '1px solid var(--border)'
+                  }}
                 >
                   SSR Perfect
                 </button>
                 <button 
                   onClick={() => setFilterSeverity('warning')}
                   className="btn" 
-                  style={{ padding: '0.4rem 0.85rem', fontSize: '0.85rem', backgroundColor: filterSeverity === 'warning' ? 'var(--warning)' : 'var(--bg-tertiary)' }}
+                  style={{ 
+                    padding: '0.4rem 1rem', 
+                    fontSize: '0.8rem', 
+                    borderRadius: '16px',
+                    boxShadow: 'none',
+                    textTransform: 'none',
+                    height: '32px',
+                    backgroundColor: filterSeverity === 'warning' ? 'rgba(251, 191, 36, 0.15)' : 'var(--bg-tertiary)',
+                    color: filterSeverity === 'warning' ? 'var(--warning)' : 'var(--text-secondary)',
+                    border: filterSeverity === 'warning' ? '1px solid var(--warning)' : '1px solid var(--border)'
+                  }}
                 >
                   Warnings
                 </button>
                 <button 
                   onClick={() => setFilterSeverity('critical')}
                   className="btn" 
-                  style={{ padding: '0.4rem 0.85rem', fontSize: '0.85rem', backgroundColor: filterSeverity === 'critical' ? 'var(--danger)' : 'var(--bg-tertiary)' }}
+                  style={{ 
+                    padding: '0.4rem 1rem', 
+                    fontSize: '0.8rem', 
+                    borderRadius: '16px',
+                    boxShadow: 'none',
+                    textTransform: 'none',
+                    height: '32px',
+                    backgroundColor: filterSeverity === 'critical' ? 'rgba(248, 113, 113, 0.15)' : 'var(--bg-tertiary)',
+                    color: filterSeverity === 'critical' ? 'var(--danger)' : 'var(--text-secondary)',
+                    border: filterSeverity === 'critical' ? '1px solid var(--danger)' : '1px solid var(--border)'
+                  }}
                 >
                   Critical CSR
                 </button>
               </div>
               
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button className="btn" onClick={exportToSitemapXML} style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', border: '1px solid var(--accent)', color: 'var(--accent)', fontSize: '0.85rem', padding: '0.5rem 1rem', gap: '0.25rem', fontWeight: '600' }}>
-                  <Sparkles size={14} style={{ color: 'var(--accent)' }} />
+                <button 
+                  className="btn" 
+                  onClick={exportToSitemapXML} 
+                  style={{ 
+                    backgroundColor: 'var(--accent-container)', 
+                    border: '1px solid rgba(182, 196, 255, 0.2)', 
+                    color: 'var(--on-accent-container)', 
+                    fontSize: '0.8rem', 
+                    padding: '0.4rem 1rem', 
+                    gap: '0.25rem', 
+                    fontWeight: '700',
+                    borderRadius: '9999px',
+                    textTransform: 'none',
+                    height: '34px',
+                    boxShadow: 'none'
+                  }}
+                >
+                  <Sparkles size={13} style={{ color: 'var(--accent)' }} />
                   Generate Sitemap.xml
                 </button>
-                <button className="btn" onClick={exportToCSV} style={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border)', fontSize: '0.85rem', padding: '0.5rem 1rem', gap: '0.25rem' }}>
-                  <Download size={14} />
+                <button 
+                  className="btn" 
+                  onClick={exportToCSV} 
+                  style={{ 
+                    backgroundColor: 'var(--bg-tertiary)', 
+                    border: '1px solid var(--border)', 
+                    color: 'var(--text-primary)',
+                    fontSize: '0.8rem', 
+                    padding: '0.4rem 1rem', 
+                    gap: '0.25rem',
+                    borderRadius: '9999px',
+                    textTransform: 'none',
+                    height: '34px',
+                    boxShadow: 'none'
+                  }}
+                >
+                  <Download size={13} />
                   Export CSV
                 </button>
-                <button className="btn" onClick={exportToJSON} style={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border)', fontSize: '0.85rem', padding: '0.5rem 1rem', gap: '0.25rem' }}>
-                  <Download size={14} />
+                <button 
+                  className="btn" 
+                  onClick={exportToJSON} 
+                  style={{ 
+                    backgroundColor: 'var(--bg-tertiary)', 
+                    border: '1px solid var(--border)', 
+                    color: 'var(--text-primary)',
+                    fontSize: '0.8rem', 
+                    padding: '0.4rem 1rem', 
+                    gap: '0.25rem',
+                    borderRadius: '9999px',
+                    textTransform: 'none',
+                    height: '34px',
+                    boxShadow: 'none'
+                  }}
+                >
+                  <Download size={13} />
                   Export JSON
                 </button>
               </div>
@@ -1085,15 +1178,17 @@ export default function Home() {
                         <button 
                           className="btn" 
                           style={{ 
-                            padding: '0.4rem 0.85rem', 
-                            fontSize: '0.8rem', 
-                            fontWeight: '700',
-                            borderRadius: '8px',
-                            border: 'none',
+                            padding: '0.4rem 1rem', 
+                            fontSize: '0.75rem', 
+                            borderRadius: '9999px',
+                            border: r.lighthouse ? `1.5px solid ${getScoreColor(r.lighthouse.scores.performance)}` : '1px solid var(--border)',
                             cursor: 'pointer',
-                            backgroundColor: r.lighthouse ? (r.lighthouse.scores.performance >= 90 ? 'var(--success)' : r.lighthouse.scores.performance >= 50 ? 'var(--warning)' : 'var(--danger)') : 'var(--bg-tertiary)', 
-                            color: r.lighthouse ? (r.lighthouse.scores.performance >= 50 && r.lighthouse.scores.performance < 90 ? '#0b0f19' : '#ffffff') : 'var(--text-secondary)',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                            backgroundColor: 'transparent',
+                            color: r.lighthouse ? getScoreColor(r.lighthouse.scores.performance) : 'var(--text-secondary)',
+                            boxShadow: 'none',
+                            textTransform: 'none',
+                            height: '30px',
+                            fontWeight: '700'
                           }}
                         >
                           View Audit Report
