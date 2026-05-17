@@ -5,7 +5,7 @@ import {
   Play, Square, AlertCircle, AlertTriangle, CheckCircle, Info, 
   ChevronRight, Download, Filter, HelpCircle, FileText, Check, ShieldAlert, ShieldCheck,
   Server, Laptop, Sparkles, ArrowRight, Gauge, Activity, Compass, Settings, ChevronDown, ChevronUp, Network, CornerDownRight, GitCompare,
-  Sun, Moon
+  Sun, Moon, X
 } from 'lucide-react';
 
 
@@ -47,6 +47,44 @@ export default function Home() {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [activeCategoryTab, setActiveCategoryTab] = useState<'performance' | 'accessibility' | 'best-practices' | 'seo'>('performance');
 
+  // 💰 Monetization & Anti-Abuse States
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [abuseBlockMessage, setAbuseBlockMessage] = useState('');
+  const [hardwareFingerprint, setHardwareFingerprint] = useState('');
+  const [globalScanCount, setGlobalScanCount] = useState(0);
+  const [userPlan, setUserPlan] = useState<'Free Tier' | 'Pro (100 Scans)' | 'Pro (500 Scans)' | 'Pro (1000 Scans)' | 'Ultimate (Infinite)'>('Free Tier');
+  const [isProcessingPurchase, setIsProcessingPurchase] = useState<string>('');
+
+  // Canvas & Hardware Fingerprinting for Anti-Abuse
+  const getDeviceFingerprint = () => {
+    if (typeof window === 'undefined') return 'DEV_HW_MOCK';
+    try {
+      const screenVal = `${window.screen.width}x${window.screen.height}x${window.screen.colorDepth}`;
+      const lang = navigator.languages ? navigator.languages.join(',') : navigator.language;
+      const ua = navigator.userAgent;
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.textBaseline = "alphabetic";
+        ctx.fillStyle = "#f60";
+        ctx.fillRect(125, 1, 62, 20);
+        ctx.fillStyle = "#069";
+        ctx.fillText("HydraSEO_Fingerprint_v1", 2, 15);
+      }
+      const canvasHash = canvas.toDataURL().slice(-100);
+      const raw = `${screenVal}|${lang}|${ua.slice(0, 50)}|${canvasHash}`;
+      let hash = 0;
+      for (let i = 0; i < raw.length; i++) {
+        const char = raw.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+      }
+      return `DEV_HW_${Math.abs(hash)}`;
+    } catch (e) {
+      return 'DEV_HW_FALLBACK';
+    }
+  };
+
   // Load theme, user session and saved scans on mount
   React.useEffect(() => {
     // 🌓 Initialize Theme
@@ -58,11 +96,42 @@ export default function Home() {
       document.documentElement.setAttribute('data-theme', 'dark');
     }
 
+    // 🕵️ Compute Hardware Fingerprint for Anti-Abuse
+    const fp = getDeviceFingerprint();
+    setHardwareFingerprint(fp);
+
+    // Initialize/Retreive the anti-abuse DB
+    let fpDb: Record<string, { totalScans: number; emails: string[] }> = {};
+    const localDb = localStorage.getItem('hydraseo_fingerprint_db');
+    if (localDb) {
+      try { fpDb = JSON.parse(localDb); } catch {}
+    }
+
+    // Fallback Cookie Verification (resilient against simple localStorage clears)
+    let cookieCount = 0;
+    if (typeof document !== 'undefined') {
+      const match = document.cookie.match(new RegExp('(^| )hydraseo_usage_' + fp + '=([^;]+)'));
+      if (match) {
+        cookieCount = Number(match[2]) || 0;
+      }
+    }
+
+    const savedFpData = fpDb[fp] || { totalScans: 0, emails: [] };
+    const maxDetectedUsage = Math.max(savedFpData.totalScans, cookieCount);
+    setGlobalScanCount(maxDetectedUsage);
+
     const savedUser = localStorage.getItem('hydraseo_active_user') || localStorage.getItem('nvms_active_user');
     if (savedUser) {
       try {
         const parsedUser = JSON.parse(savedUser);
         setUser(parsedUser);
+
+        // Fetch plan for this user
+        const storedPlan = localStorage.getItem(`hydraseo_user_plan_${parsedUser.email}`) as any;
+        if (storedPlan) {
+          setUserPlan(storedPlan);
+        }
+
         const scans = localStorage.getItem(`hydraseo_user_scans_${parsedUser.email}`) || localStorage.getItem(`nvms_user_scans_${parsedUser.email}`);
         if (scans) {
           const parsedScans = JSON.parse(scans);
@@ -98,6 +167,49 @@ export default function Home() {
     } else {
       setSavedScans([]);
     }
+
+    // Dynamic quota lookup for logged-in user
+    const storedPlan = localStorage.getItem(`hydraseo_user_plan_${email}`) as any;
+    if (storedPlan) {
+      setUserPlan(storedPlan);
+    } else {
+      setUserPlan('Free Tier');
+    }
+  };
+
+  // 💳 Secure Premium Billing Checkout Simulator
+  const handlePurchasePlan = (planName: typeof userPlan) => {
+    setIsProcessingPurchase(planName);
+    setTimeout(() => {
+      setIsProcessingPurchase('');
+      setUserPlan(planName);
+      localStorage.setItem(`hydraseo_user_plan_${user?.email || 'guest'}`, planName);
+      
+      // Reset active usage counter to let them use the entire new quota allowance!
+      setGlobalScanCount(0);
+      
+      const fp = hardwareFingerprint || getDeviceFingerprint();
+      let fpDb: Record<string, { totalScans: number; emails: string[] }> = {};
+      const localDb = localStorage.getItem('hydraseo_fingerprint_db');
+      if (localDb) {
+        try { fpDb = JSON.parse(localDb); } catch {}
+      }
+      const fpData = fpDb[fp] || { totalScans: 0, emails: [] };
+      fpData.totalScans = 0; // reset active machine counter for premium users!
+      fpDb[fp] = fpData;
+      localStorage.setItem('hydraseo_fingerprint_db', JSON.stringify(fpDb));
+
+      // Reset resilient secure fallback cookie
+      if (typeof document !== 'undefined') {
+        const cookieExpiry = new Date();
+        cookieExpiry.setFullYear(cookieExpiry.getFullYear() + 2);
+        document.cookie = `hydraseo_usage_${fp}=0; expires=${cookieExpiry.toUTCString()}; path=/; SameSite=Lax`;
+      }
+
+      setShowUpgradeModal(false);
+      setAbuseBlockMessage('');
+      alert(`Congratulations! You have successfully upgraded to the ${planName} package. Your scan limits have been lifted immediately!`);
+    }, 1500);
   };
 
   const handleAuthSubmit = () => {
@@ -231,6 +343,40 @@ export default function Home() {
   const startRealScan = async () => {
     if (!urlInput) return;
     
+    // 🕵️ Anti-Abuse & Monetization Checks
+    const fp = hardwareFingerprint || getDeviceFingerprint();
+    const isPro = userPlan !== 'Free Tier';
+    const currentLimit = userPlan === 'Ultimate (Infinite)' ? Infinity : 
+                         userPlan === 'Pro (100 Scans)' ? 100 : 
+                         userPlan === 'Pro (500 Scans)' ? 500 : 
+                         userPlan === 'Pro (1000 Scans)' ? 1000 : 10;
+
+    // Check if total usage already reached
+    if (globalScanCount >= currentLimit) {
+      setIsScanning(false);
+      if (userPlan === 'Free Tier') {
+        setAbuseBlockMessage(`You have reached the 10 free scans limit for guests. Please upgrade to a Pro plan to continue analyzing.`);
+      } else {
+        setAbuseBlockMessage(`You have exhausted your active plan allowance of ${currentLimit} scans. Please purchase a new package to continue.`);
+      }
+      setShowUpgradeModal(true);
+      return;
+    }
+
+    // Hardware Circumvention Check (if they log out or switch email but machine remains the same)
+    let fpDb: Record<string, { totalScans: number; emails: string[] }> = {};
+    const localDb = localStorage.getItem('hydraseo_fingerprint_db');
+    if (localDb) {
+      try { fpDb = JSON.parse(localDb); } catch {}
+    }
+    const fpData = fpDb[fp] || { totalScans: 0, emails: [] };
+    if (!isPro && fpData.totalScans >= 10) {
+      setIsScanning(false);
+      setAbuseBlockMessage(`Anti-Circumvention Shield Triggered: Machine ${fp} has already exhausted the 10 free scans allowance. Please upgrade to a premium plan to continue.`);
+      setShowUpgradeModal(true);
+      return;
+    }
+
     setIsScanning(true);
     setProgress(0);
     setResults([]);
@@ -259,6 +405,14 @@ export default function Home() {
         return;
       }
 
+      // Check allowance mid-scan (just in case they scan a large queue)
+      if (globalScanCount >= currentLimit) {
+        setIsScanning(false);
+        setAbuseBlockMessage(`Scan paused: You have exhausted your plan allowance of ${currentLimit} scans.`);
+        setShowUpgradeModal(true);
+        return;
+      }
+
       const currentUrl = currentQueue[0];
       const remainingQueue = currentQueue.slice(1);
       
@@ -282,6 +436,30 @@ export default function Home() {
         }
 
         const data = await response.json();
+
+        // 💰 Successfully completed a scan! Increment global and fingerprint usages
+        const nextCount = globalScanCount + 1;
+        setGlobalScanCount(nextCount);
+
+        let latestFpDb: Record<string, { totalScans: number; emails: string[] }> = {};
+        const currentDb = localStorage.getItem('hydraseo_fingerprint_db');
+        if (currentDb) {
+          try { latestFpDb = JSON.parse(currentDb); } catch {}
+        }
+        const machineData = latestFpDb[fp] || { totalScans: 0, emails: [] };
+        machineData.totalScans = Math.max(machineData.totalScans + 1, nextCount);
+        if (user && !machineData.emails.includes(user.email)) {
+          machineData.emails.push(user.email);
+        }
+        latestFpDb[fp] = machineData;
+        localStorage.setItem('hydraseo_fingerprint_db', JSON.stringify(latestFpDb));
+
+        // Persist resilient fallback cookie
+        if (typeof document !== 'undefined') {
+          const cookieExpiry = new Date();
+          cookieExpiry.setFullYear(cookieExpiry.getFullYear() + 2);
+          document.cookie = `hydraseo_usage_${fp}=${machineData.totalScans}; expires=${cookieExpiry.toUTCString()}; path=/; SameSite=Lax`;
+        }
         
         finalResults.push(data);
         setResults([...finalResults]);
@@ -675,40 +853,116 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 🌟 Guest CTA - Create New Account Option */}
-      {!user && (
-        <div className="card" style={{ marginTop: '1.5rem', borderLeft: '4px solid var(--success)', backgroundColor: 'rgba(122, 194, 112, 0.03)' }}>
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '1rem' }}>
+      {/* 🌟 Monetization Portal & Quota Dashboard */}
+      {!user ? (
+        <div className="card" style={{ marginTop: '1.5rem', borderLeft: '4px solid var(--success)', backgroundColor: 'rgba(122, 194, 112, 0.03)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.25rem' }}>
             <Sparkles size={20} style={{ color: 'var(--success)' }} />
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>Unlock Personalized Cloud Archiving</h2>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)' }}>Unlock Personalized Cloud Archiving & Pro Audits</h2>
           </div>
-          <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', lineHeight: '1.5' }}>
-            Sign up for a free HydraSEO account using Google Secure Auth. You will unlock cloud-saved audits, SEO risk change tracking over time, and side-by-side Staging vs Production comparison features.
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.75rem', lineHeight: '1.5' }}>
+            Register now via Google Secure Authentication to unlock cloud-archived scan logs, SEO regression tracking, and gain a complimentary trial of 10 scans. Upgrade to premium scanner packages anytime to scale up your operations!
           </p>
-          <button 
-            onClick={() => {
-              setAuthStep('credentials');
-              setShowAuthModal(true);
-            }}
-            className="btn"
-            style={{ 
-              backgroundColor: 'var(--success)', 
-              color: '#0a0e15',
-              padding: '0.6rem 1.5rem', 
-              fontSize: '0.85rem',
-              fontWeight: 700,
-              borderRadius: '9999px',
-              border: 'none',
-              boxShadow: 'none',
-              textTransform: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              cursor: 'pointer'
-            }}
-          >
-            Create New Account (Google Sign Up)
-          </button>
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            <button 
+              onClick={() => {
+                setAuthStep('credentials');
+                setShowAuthModal(true);
+              }}
+              className="btn"
+              style={{ 
+                backgroundColor: 'var(--success)', 
+                color: '#0a0e15',
+                padding: '0.55rem 1.4rem', 
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                borderRadius: '9999px',
+                border: 'none',
+                boxShadow: 'none',
+                textTransform: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                cursor: 'pointer'
+              }}
+            >
+              Get Started (Google Sign Up)
+            </button>
+            <button 
+              onClick={() => setShowUpgradeModal(true)}
+              className="btn"
+              style={{ 
+                backgroundColor: 'transparent', 
+                color: 'var(--text-primary)',
+                border: '1.5px solid var(--border)',
+                padding: '0.55rem 1.4rem', 
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                borderRadius: '9999px',
+                boxShadow: 'none',
+                textTransform: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                cursor: 'pointer'
+              }}
+            >
+              View Pro Pricing Packages
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="card" style={{ marginTop: '1.5rem', borderLeft: '4px solid var(--success)', backgroundColor: 'rgba(122, 194, 112, 0.02)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', alignItems: 'center' }}>
+          <div>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <Sparkles size={18} style={{ color: 'var(--success)' }} />
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Account Plan & Usage Quota</h3>
+            </div>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4', margin: 0 }}>
+              Device HW Identifier: <code style={{ color: 'var(--accent)', fontSize: '0.75rem' }}>{hardwareFingerprint || 'Loading...'}</code>
+            </p>
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+              <span>Scans Usage Plan: <strong style={{ color: 'var(--success)' }}>{userPlan}</strong></span>
+              <span>{userPlan === 'Ultimate (Infinite)' ? 'Unlimited' : `${globalScanCount} / ${userPlan === 'Pro (100 Scans)' ? 100 : userPlan === 'Pro (500 Scans)' ? 500 : userPlan === 'Pro (1000 Scans)' ? 1000 : 10} scans`}</span>
+            </div>
+            {userPlan !== 'Ultimate (Infinite)' && (
+              <div style={{ width: '100%', height: '8px', backgroundColor: 'var(--border)', borderRadius: '4px', overflow: 'hidden' }}>
+                <div style={{ 
+                  width: `${Math.min(100, (globalScanCount / (userPlan === 'Pro (100 Scans)' ? 100 : userPlan === 'Pro (500 Scans)' ? 500 : userPlan === 'Pro (1000 Scans)' ? 1000 : 10)) * 100)}%`, 
+                  height: '100%', 
+                  backgroundColor: 'var(--success)',
+                  transition: 'width 0.4s ease'
+                }} />
+              </div>
+            )}
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginTop: '0.25rem' }}>
+              {userPlan === 'Ultimate (Infinite)' ? 'Enjoy infinite priority crawler allocations!' : `${Math.max(0, (userPlan === 'Pro (100 Scans)' ? 100 : userPlan === 'Pro (500 Scans)' ? 500 : userPlan === 'Pro (1000 Scans)' ? 1000 : 10) - globalScanCount)} scans remaining in your plan.`}
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button 
+              onClick={() => setShowUpgradeModal(true)}
+              className="btn"
+              style={{ 
+                backgroundColor: 'var(--success)', 
+                color: '#0a0e15',
+                padding: '0.55rem 1.4rem', 
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                borderRadius: '9999px',
+                border: 'none',
+                boxShadow: 'none',
+                textTransform: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              Upgrade & Purchase Pack
+            </button>
+          </div>
         </div>
       )}
 
@@ -2115,6 +2369,239 @@ export default function Home() {
               </>
             )}
           </div>
+      {/* 💳 Pro Premium Packages Billing Modal */}
+      {showUpgradeModal && (
+        <div className="drawer-backdrop" onClick={() => { setShowUpgradeModal(false); setAbuseBlockMessage(''); }}>
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{ 
+              backgroundColor: 'var(--bg-secondary)', 
+              border: '1px solid var(--border)', 
+              borderRadius: '24px', 
+              padding: '2.5rem', 
+              width: '100%', 
+              maxWidth: '680px', 
+              boxShadow: 'var(--shadow-5)',
+              display: 'flex',
+              flexDirection: 'column',
+              position: 'relative',
+              maxHeight: '90vh',
+              overflowY: 'auto'
+            }}
+          >
+            {/* Close Button */}
+            <button 
+              onClick={() => { setShowUpgradeModal(false); setAbuseBlockMessage(''); }} 
+              style={{ 
+                position: 'absolute', 
+                top: '1.25rem', 
+                right: '1.25rem', 
+                background: 'none', 
+                border: 'none', 
+                color: 'var(--text-secondary)', 
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '0.25rem',
+                borderRadius: '50%'
+              }}
+            >
+              <X size={20} />
+            </button>
+
+            {/* Anti-Abuse Block Alert Banner */}
+            {abuseBlockMessage && (
+              <div style={{ 
+                backgroundColor: 'rgba(239, 68, 68, 0.06)', 
+                border: '1.5px solid var(--danger)', 
+                borderRadius: '16px', 
+                padding: '1rem 1.25rem', 
+                marginBottom: '1.75rem', 
+                display: 'flex', 
+                gap: '0.75rem', 
+                alignItems: 'flex-start',
+                textAlign: 'left'
+              }}>
+                <AlertTriangle size={20} style={{ color: 'var(--danger)', flexShrink: 0, marginTop: '0.1rem' }} />
+                <div>
+                  <strong style={{ color: 'var(--danger)', fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>
+                    Quota Limit Reached & Anti-Abuse Protected
+                  </strong>
+                  <span style={{ fontSize: '0.775rem', color: 'var(--text-secondary)', lineHeight: '1.45' }}>
+                    {abuseBlockMessage}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <div style={{ display: 'inline-flex', gap: '0.5rem', alignItems: 'center', backgroundColor: 'rgba(76, 175, 80, 0.08)', padding: '0.4rem 1rem', borderRadius: '9999px', border: '1px solid rgba(76, 175, 80, 0.2)', marginBottom: '1rem' }}>
+                <Sparkles size={14} style={{ color: 'var(--success)' }} />
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--success)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Secure Enterprise Billing</span>
+              </div>
+              <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                Upgrade to HydraSEO Pro
+              </h3>
+              <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', margin: 0 }}>
+                Select a package to unlock dynamic crawler credits and run unconstrained scans.
+              </p>
+            </div>
+
+            {/* Pricing Options Cards Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.25rem', width: '100%', marginBottom: '1rem' }}>
+              
+              {/* Option 1: 100 Scans */}
+              <div style={{ 
+                backgroundColor: 'var(--bg-tertiary)', 
+                border: '1px solid var(--border)', 
+                borderRadius: '20px', 
+                padding: '1.5rem',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                transition: 'all 0.25s',
+                boxShadow: 'var(--shadow-1)'
+              }}>
+                <div>
+                  <h4 style={{ fontSize: '0.9rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', letterSpacing: '0.05em', margin: '0 0 0.5rem 0' }}>Enterprise Starter</h4>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem', marginBottom: '1rem' }}>
+                    <span style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>$9.99</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>/ one-time</span>
+                  </div>
+                  <ul style={{ paddingLeft: '1.2rem', margin: '0 0 1.5rem 0', fontSize: '0.775rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.5rem', textAlign: 'left' }}>
+                    <li><b>100</b> deep-crawler page scans</li>
+                    <li>Core Web Vitals timing reports</li>
+                    <li>SEO comparison tools</li>
+                  </ul>
+                </div>
+                <button 
+                  onClick={() => handlePurchasePlan('Pro (100 Scans)')}
+                  disabled={!!isProcessingPurchase}
+                  className="btn"
+                  style={{ width: '100%', height: '40px', fontSize: '0.8rem', fontWeight: 700, borderRadius: '9999px', textTransform: 'none', boxShadow: 'none', cursor: 'pointer' }}
+                >
+                  {isProcessingPurchase === 'Pro (100 Scans)' ? 'Processing...' : 'Buy 100 Scans'}
+                </button>
+              </div>
+
+              {/* Option 2: 500 Scans (Recommended!) */}
+              <div style={{ 
+                backgroundColor: 'var(--bg-tertiary)', 
+                border: '2px solid var(--success)', 
+                borderRadius: '20px', 
+                padding: '1.5rem',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                position: 'relative',
+                transition: 'all 0.25s',
+                boxShadow: 'var(--shadow-2)'
+              }}>
+                <div style={{ position: 'absolute', top: '-0.75rem', left: '50%', transform: 'translateX(-50%)', backgroundColor: 'var(--success)', color: '#0a0e15', padding: '0.25rem 0.75rem', borderRadius: '9999px', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Most Popular
+                </div>
+                <div>
+                  <h4 style={{ fontSize: '0.9rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--success)', letterSpacing: '0.05em', margin: '0.5rem 0 0.5rem 0' }}>Pro Growth</h4>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem', marginBottom: '1rem' }}>
+                    <span style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>$19.99</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>/ one-time</span>
+                  </div>
+                  <ul style={{ paddingLeft: '1.2rem', margin: '0 0 1.5rem 0', fontSize: '0.775rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.5rem', textAlign: 'left' }}>
+                    <li><b>500</b> deep-crawler page scans</li>
+                    <li>Full PageSpeed audits & suggestions</li>
+                    <li>Advanced NWSAPI checks</li>
+                    <li>Priority queue processing</li>
+                  </ul>
+                </div>
+                <button 
+                  onClick={() => handlePurchasePlan('Pro (500 Scans)')}
+                  disabled={!!isProcessingPurchase}
+                  className="btn"
+                  style={{ width: '100%', height: '40px', fontSize: '0.8rem', fontWeight: 700, borderRadius: '9999px', backgroundColor: 'var(--success)', color: '#0a0e15', border: 'none', textTransform: 'none', boxShadow: 'none', cursor: 'pointer' }}
+                >
+                  {isProcessingPurchase === 'Pro (500 Scans)' ? 'Processing...' : 'Buy 500 Scans'}
+                </button>
+              </div>
+
+              {/* Option 3: 1000 Scans */}
+              <div style={{ 
+                backgroundColor: 'var(--bg-tertiary)', 
+                border: '1px solid var(--border)', 
+                borderRadius: '20px', 
+                padding: '1.5rem',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                transition: 'all 0.25s',
+                boxShadow: 'var(--shadow-1)'
+              }}>
+                <div>
+                  <h4 style={{ fontSize: '0.9rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', letterSpacing: '0.05em', margin: '0 0 0.5rem 0' }}>Agency Scale</h4>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem', marginBottom: '1rem' }}>
+                    <span style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>$29.99</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>/ one-time</span>
+                  </div>
+                  <ul style={{ paddingLeft: '1.2rem', margin: '0 0 1.5rem 0', fontSize: '0.775rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.5rem', textAlign: 'left' }}>
+                    <li><b>1000</b> deep-crawler page scans</li>
+                    <li>Full priority crawler allocation</li>
+                    <li>Enterprise PDF audit exports</li>
+                  </ul>
+                </div>
+                <button 
+                  onClick={() => handlePurchasePlan('Pro (1000 Scans)')}
+                  disabled={!!isProcessingPurchase}
+                  className="btn"
+                  style={{ width: '100%', height: '40px', fontSize: '0.8rem', fontWeight: 700, borderRadius: '9999px', textTransform: 'none', boxShadow: 'none', cursor: 'pointer' }}
+                >
+                  {isProcessingPurchase === 'Pro (1000 Scans)' ? 'Processing...' : 'Buy 1000 Scans'}
+                </button>
+              </div>
+
+              {/* Option 4: Infinite Scans */}
+              <div style={{ 
+                backgroundColor: 'var(--bg-tertiary)', 
+                border: '1px solid var(--accent)', 
+                borderRadius: '20px', 
+                padding: '1.5rem',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                transition: 'all 0.25s',
+                boxShadow: 'var(--shadow-2)',
+                gridColumn: '1 / -1'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                  <div style={{ textAlign: 'left' }}>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--accent)', letterSpacing: '0.05em', margin: '0 0 0.25rem 0' }}>Ultimate Core Yearly</h4>
+                    <p style={{ fontSize: '0.775rem', color: 'var(--text-secondary)', margin: 0 }}>
+                      Absolute infinite priority crawler page audits & deep PageSpeed reports. Lift all locks!
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem' }}>
+                    <span style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text-primary)' }}>$99.99</span>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>/ year</span>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => handlePurchasePlan('Ultimate (Infinite)')}
+                  disabled={!!isProcessingPurchase}
+                  className="btn"
+                  style={{ width: '100%', height: '44px', fontSize: '0.85rem', fontWeight: 700, borderRadius: '9999px', backgroundColor: 'var(--accent)', color: '#0a0e15', border: 'none', textTransform: 'none', boxShadow: 'none', cursor: 'pointer', marginTop: '1.25rem' }}
+                >
+                  {isProcessingPurchase === 'Ultimate (Infinite)' ? 'Processing Secure Google Checkout...' : 'Purchase Infinite Access ($99.99/year)'}
+                </button>
+              </div>
+
+            </div>
+
+            <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textAlign: 'center', marginTop: '0.5rem', lineHeight: '1.4' }}>
+              🔒 Transactions processed securely using Mock Google Pay Core integrations. Charges appear on bank records under HYDRASEO_PRO_SERVICES. All purchases are backed by a robust 14-day refund guarantee.
+            </p>
+          </div>
+        </div>
+      )}
+
         </div>
       )}
 
