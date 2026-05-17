@@ -1,32 +1,36 @@
 :root {
-  /* Material Design 3 (MD3) Dark Theme System Tokens */
-  --bg-primary: #121318; /* MD3 Obsidian Dark Canvas */
-  --bg-secondary: #1c1b22; /* MD3 Surface Level 1 */
-  --bg-tertiary: #25242a; /* MD3 Surface Level 2 */
-  --bg-container-high: #2f2e36; /* MD3 Surface Level 3 */
+  /* Material Design 3 (MD3) Dark Theme System Tokens - Styled with HydraSEO Logo Colors */
+  --bg-primary: #0a0e15; /* Deep slate cyber navy canvas */
+  --bg-secondary: #101622; /* MD3 Surface Level 1 (slate card surface) */
+  --bg-tertiary: #192131; /* MD3 Surface Level 2 */
+  --bg-container-high: #222d41; /* MD3 Surface Level 3 */
   
-  --text-primary: #e6e1e9; /* MD3 On-Surface */
-  --text-secondary: #938f99; /* MD3 On-Surface Variant (highly legible) */
-  --text-tertiary: #79747e; /* MD3 Outline */
+  --text-primary: #f1f5f9; /* MD3 On-Surface (super bright off-white) */
+  --text-secondary: #94a3b8; /* MD3 On-Surface Variant (cool grey) */
+  --text-tertiary: #64748b; /* MD3 Outline */
   
-  --accent: #b6c4ff; /* MD3 Primary (Pastel Indigo/Lavender) */
-  --accent-hover: #cfd7ff; /* MD3 Primary Hover State */
-  --accent-container: #3b4675; /* MD3 Primary Container */
-  --on-accent-container: #dbe1ff; /* MD3 On Primary Container */
+  /* Primary Accent: Logo Sky Blue (#1fa4e8) */
+  --accent: #1fa4e8; 
+  --accent-hover: #4dc3ff; 
+  --accent-container: rgba(31, 164, 232, 0.12); 
+  --on-accent-container: #7dd3fc; 
   
-  --border: rgba(255, 255, 255, 0.08); /* MD3 Outline Variant */
-  --success: #34d399; /* MD3 Custom Success Mint */
-  --warning: #fbbf24; /* MD3 Custom Warning Amber */
-  --danger: #f87171; /* MD3 Custom Error Rose */
+  --border: rgba(31, 164, 232, 0.15); /* Tinted subtle borders */
+  
+  /* Success Accent: Logo Apple Green (#7ac270) */
+  --success: #7ac270; 
+  
+  --warning: #fbbf24; /* Pastel Amber */
+  --danger: #f87171; /* Pastel Rose */
   
   --font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   
   /* MD3 Elevation Shadows (State Layers) */
-  --shadow-1: 0 1px 3px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.3);
-  --shadow-2: 0 3px 6px rgba(0,0,0,0.3), 0 3px 6px rgba(0,0,0,0.4);
-  --shadow-3: 0 8px 16px rgba(0,0,0,0.4), 0 6px 12px rgba(0,0,0,0.45);
-  --shadow-4: 0 12px 24px rgba(0,0,0,0.5), 0 8px 16px rgba(0,0,0,0.5);
-  --shadow-5: 0 20px 32px rgba(0,0,0,0.6), 0 12px 20px rgba(0,0,0,0.55);
+  --shadow-1: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.4);
+  --shadow-2: 0 4px 6px rgba(0,0,0,0.4), 0 3px 6px rgba(0,0,0,0.5);
+  --shadow-3: 0 10px 20px rgba(0,0,0,0.45), 0 6px 12px rgba(0,0,0,0.5);
+  --shadow-4: 0 14px 28px rgba(0,0,0,0.55), 0 10px 10px rgba(0,0,0,0.55);
+  --shadow-5: 0 20px 40px rgba(0,0,0,0.65), 0 12px 24px rgba(0,0,0,0.6);
 }
 
 * {
@@ -90,9 +94,6 @@ button, input, select {
   font-size: 2.75rem;
   font-weight: 800;
   letter-spacing: -0.04em;
-  background: linear-gradient(135deg, #c3cdff, #8fa3ff, #6366f1);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
 }
 
 .header p {
@@ -116,7 +117,7 @@ button, input, select {
 .card:hover {
   box-shadow: var(--shadow-3);
   background-color: var(--bg-tertiary);
-  border-color: rgba(255,255,255,0.12);
+  border-color: rgba(31, 164, 232, 0.25);
 }
 
 .card::before {
@@ -126,7 +127,7 @@ button, input, select {
   left: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle at top left, rgba(182, 196, 255, 0.03), transparent 60%);
+  background: radial-gradient(circle at top left, rgba(31, 164, 232, 0.04), transparent 60%);
   pointer-events: none;
 }
 
@@ -155,13 +156,13 @@ button, input, select {
   color: var(--text-primary);
   font-size: 0.95rem;
   transition: all 0.25s cubic-bezier(0.2, 0, 0, 1);
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.15);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
 }
 
 .input:focus, select.input:focus {
   border-color: var(--accent);
   background-color: var(--bg-container-high);
-  box-shadow: 0 0 0 4px rgba(182, 196, 255, 0.15);
+  box-shadow: 0 0 0 4px rgba(31, 164, 232, 0.2);
 }
 
 .checkbox-label {
@@ -189,7 +190,7 @@ button, input, select {
   justify-content: center;
   padding: 0.85rem 2rem;
   background-color: var(--accent);
-  color: #121318; /* Dark text for light pill background */
+  color: #0a0e15; /* Dark obsidian text for light pill background */
   border: none;
   border-radius: 9999px; /* Absolute MD3 Pill Shape */
   font-weight: 700;
@@ -198,7 +199,7 @@ button, input, select {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
-  box-shadow: 0 4px 12px rgba(182, 196, 255, 0.25);
+  box-shadow: 0 4px 12px rgba(31, 164, 232, 0.25);
   position: relative;
   overflow: hidden;
 }
@@ -206,7 +207,7 @@ button, input, select {
 .btn:hover {
   background-color: var(--accent-hover);
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(182, 196, 255, 0.4);
+  box-shadow: 0 8px 20px rgba(31, 164, 232, 0.4);
 }
 
 .btn:active {
@@ -231,8 +232,8 @@ button, input, select {
 }
 
 .btn-secondary:hover {
-  background-color: rgba(182, 196, 255, 0.08);
-  box-shadow: 0 4px 12px rgba(182, 196, 255, 0.1);
+  background-color: rgba(31, 164, 232, 0.08);
+  box-shadow: 0 4px 12px rgba(31, 164, 232, 0.1);
 }
 
 /* Statistics Grid */
@@ -333,7 +334,7 @@ button, input, select {
   letter-spacing: 0.06em;
 }
 
-.badge-ok { background-color: rgba(52, 211, 153, 0.1); color: var(--success); }
+.badge-ok { background-color: rgba(122, 194, 112, 0.12); color: var(--success); }
 .badge-warning { background-color: rgba(251, 191, 36, 0.1); color: var(--warning); }
 .badge-high-risk { background-color: rgba(248, 113, 113, 0.1); color: #ffa8a8; }
 .badge-critical { background-color: rgba(248, 113, 113, 0.15); color: var(--danger); border: 1px solid rgba(248, 113, 113, 0.25); }
@@ -444,7 +445,7 @@ button, input, select {
 }
 
 .audit-list-item:hover {
-  border-color: rgba(255,255,255,0.15);
+  border-color: rgba(31, 164, 232, 0.25);
 }
 
 .audit-header {
@@ -494,7 +495,7 @@ button, input, select {
 
 .progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), #8fa3ff);
+  background: linear-gradient(90deg, var(--accent), #7ac270);
   transition: width 0.3s ease;
 }
 

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { 
   Play, Square, AlertCircle, AlertTriangle, CheckCircle, Info, 
-  ChevronRight, Download, Filter, HelpCircle, FileText, Check, ShieldAlert,
+  ChevronRight, Download, Filter, HelpCircle, FileText, Check, ShieldAlert, ShieldCheck,
   Server, Laptop, Sparkles, ArrowRight, Gauge, Activity, Compass, Settings, ChevronDown, ChevronUp, Network, CornerDownRight, GitCompare
 } from 'lucide-react';
 
@@ -39,6 +39,7 @@ export default function Home() {
   // Authentication & Saved Scans States
   const [user, setUser] = useState<any | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authStep, setAuthStep] = useState<'credentials' | 'permissions'>('credentials');
   const [authEmail, setAuthEmail] = useState('developer@gmail.com');
   const [authName, setAuthName] = useState('NextJS Developer');
   const [savedScans, setSavedScans] = useState<any[]>([]);
@@ -76,6 +77,7 @@ export default function Home() {
     setUser(newUser);
     localStorage.setItem('hydraseo_active_user', JSON.stringify(newUser));
     setShowAuthModal(false);
+    setAuthStep('credentials');
     
     // Load scans for this user with legacy fallback
     const scans = localStorage.getItem(`hydraseo_user_scans_${email}`) || localStorage.getItem(`nvms_user_scans_${email}`);
@@ -83,6 +85,18 @@ export default function Home() {
       setSavedScans(JSON.parse(scans));
     } else {
       setSavedScans([]);
+    }
+  };
+
+  const handleAuthSubmit = () => {
+    if (!authEmail || !authName) return;
+    const scans = localStorage.getItem(`hydraseo_user_scans_${authEmail}`) || localStorage.getItem(`nvms_user_scans_${authEmail}`);
+    if (scans || authStep === 'permissions') {
+      // Existing user or permissions granted
+      handleLogin(authEmail, authName);
+    } else {
+      // New user signup - ask for Google Account Permissions
+      setAuthStep('permissions');
     }
   };
 
@@ -447,10 +461,17 @@ export default function Home() {
     <div className="container">
       {/* Header */}
       <header className="header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h1 style={{ background: 'linear-gradient(135deg, #a5b4fc, #6366f1, #4f46e5)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontSize: '2.75rem', fontWeight: 800 }}>HydraSEO</h1>
-          <p style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '0.25rem' }}>Enterprise Technical SEO Auditor & Core Web Vitals Suite</p>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>Empowering engineering teams with high-speed SSR diagnostics, hydration mismatch audits, and cross-environment comparative insights.</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <img 
+            src="/hydraseo-logo.png" 
+            alt="HydraSEO Logo" 
+            style={{ width: '56px', height: '56px', objectFit: 'contain' }} 
+          />
+          <div>
+            <h1 style={{ background: 'linear-gradient(135deg, #7dd3fc, var(--accent), var(--success))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontSize: '2.75rem', fontWeight: 800 }}>HydraSEO</h1>
+            <p style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '0.25rem' }}>Enterprise Technical SEO Auditor & Core Web Vitals Suite</p>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>Empowering engineering teams with high-speed SSR diagnostics, hydration mismatch audits, and cross-environment comparative insights.</p>
+          </div>
         </div>
         <div>
           {user ? (
@@ -1340,21 +1361,51 @@ export default function Home() {
               <button 
                 onClick={() => setDrawerTab('seo-diff')} 
                 className="btn" 
-                style={{ flex: 1, fontSize: '0.85rem', padding: '0.5rem', backgroundColor: drawerTab === 'seo-diff' ? 'var(--accent)' : 'var(--bg-tertiary)' }}
+                style={{ 
+                  flex: 1, 
+                  fontSize: '0.8rem', 
+                  padding: '0.5rem', 
+                  borderRadius: '9999px',
+                  boxShadow: 'none',
+                  textTransform: 'none',
+                  backgroundColor: drawerTab === 'seo-diff' ? 'var(--accent)' : 'var(--bg-tertiary)',
+                  color: drawerTab === 'seo-diff' ? '#121318' : 'var(--text-secondary)',
+                  border: drawerTab === 'seo-diff' ? 'none' : '1px solid var(--border)'
+                }}
               >
                 SEO Visibility Diff
               </button>
               <button 
                 onClick={() => setDrawerTab('pagespeed')} 
                 className="btn" 
-                style={{ flex: 1, fontSize: '0.85rem', padding: '0.5rem', backgroundColor: drawerTab === 'pagespeed' ? 'var(--accent)' : 'var(--bg-tertiary)' }}
+                style={{ 
+                  flex: 1, 
+                  fontSize: '0.8rem', 
+                  padding: '0.5rem', 
+                  borderRadius: '9999px',
+                  boxShadow: 'none',
+                  textTransform: 'none',
+                  backgroundColor: drawerTab === 'pagespeed' ? 'var(--accent)' : 'var(--bg-tertiary)',
+                  color: drawerTab === 'pagespeed' ? '#121318' : 'var(--text-secondary)',
+                  border: drawerTab === 'pagespeed' ? 'none' : '1px solid var(--border)'
+                }}
               >
                 Lighthouse Scores
               </button>
               <button 
                 onClick={() => setDrawerTab('audits')} 
                 className="btn" 
-                style={{ flex: 1, fontSize: '0.85rem', padding: '0.5rem', backgroundColor: drawerTab === 'audits' ? 'var(--accent)' : 'var(--bg-tertiary)' }}
+                style={{ 
+                  flex: 1, 
+                  fontSize: '0.8rem', 
+                  padding: '0.5rem', 
+                  borderRadius: '9999px',
+                  boxShadow: 'none',
+                  textTransform: 'none',
+                  backgroundColor: drawerTab === 'audits' ? 'var(--accent)' : 'var(--bg-tertiary)',
+                  color: drawerTab === 'audits' ? '#121318' : 'var(--text-secondary)',
+                  border: drawerTab === 'audits' ? 'none' : '1px solid var(--border)'
+                }}
               >
                 Passed & Failed Audits
               </button>
@@ -1658,13 +1709,13 @@ export default function Home() {
           <div 
             onClick={(e) => e.stopPropagation()}
             style={{ 
-              backgroundColor: 'var(--bg-primary)', 
+              backgroundColor: 'var(--bg-secondary)', 
               border: '1px solid var(--border)', 
-              borderRadius: '16px', 
+              borderRadius: '24px', 
               padding: '2.5rem', 
               width: '100%', 
-              maxWidth: '420px', 
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)',
+              maxWidth: '440px', 
+              boxShadow: 'var(--shadow-5)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -1672,73 +1723,127 @@ export default function Home() {
               position: 'relative'
             }}
           >
-            {/* Google Logo Brand Icon */}
-            <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'center' }}>
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
-              </svg>
-            </div>
+            {authStep === 'credentials' ? (
+              <>
+                {/* Google Logo Brand Icon */}
+                <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'center' }}>
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="var(--accent)"/>
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="var(--success)"/>
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="var(--warning)"/>
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="var(--danger)"/>
+                  </svg>
+                </div>
 
-            <h3 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Sign in to HydraSEO</h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '2rem' }}>
-              to continue to your Technical SEO & simulated Core Web Vitals Auditor dashboard.
-            </p>
+                <h3 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Sign in to HydraSEO</h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '2rem' }}>
+                  to continue to your Technical SEO & simulated Core Web Vitals Auditor dashboard.
+                </p>
 
-            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
-              <div className="form-group" style={{ textAlign: 'left' }}>
-                <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Google Email Address</label>
-                <input 
-                  type="email" 
-                  className="input" 
-                  value={authEmail}
-                  onChange={(e) => setAuthEmail(e.target.value)}
-                  style={{ width: '100%' }}
-                />
-              </div>
+                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '1.75rem' }}>
+                  <div className="form-group" style={{ textAlign: 'left', marginBottom: 0 }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Google Email Address</label>
+                    <input 
+                      type="email" 
+                      className="input" 
+                      value={authEmail}
+                      onChange={(e) => setAuthEmail(e.target.value)}
+                      style={{ width: '100%' }}
+                    />
+                  </div>
 
-              <div className="form-group" style={{ textAlign: 'left' }}>
-                <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Profile Display Name</label>
-                <input 
-                  type="text" 
-                  className="input" 
-                  value={authName}
-                  onChange={(e) => setAuthName(e.target.value)}
-                  style={{ width: '100%' }}
-                />
-              </div>
-            </div>
+                  <div className="form-group" style={{ textAlign: 'left', marginBottom: 0 }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Profile Display Name</label>
+                    <input 
+                      type="text" 
+                      className="input" 
+                      value={authName}
+                      onChange={(e) => setAuthName(e.target.value)}
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+                </div>
 
-            <div style={{ display: 'flex', width: '100%', gap: '0.75rem' }}>
-              <button 
-                onClick={() => handleLogin(authEmail, authName)}
-                className="btn"
-                style={{ flex: 1, height: '44px', fontWeight: 700 }}
-              >
-                Sign In Securely
-              </button>
-              <button 
-                onClick={() => setShowAuthModal(false)}
-                style={{ 
-                  flex: 1, 
-                  height: '44px', 
-                  backgroundColor: 'var(--bg-tertiary)', 
-                  color: 'var(--text-secondary)', 
-                  border: '1px solid var(--border)', 
-                  borderRadius: '10px',
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-            
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem', justifyContent: 'center' }}>
-              Secured by Google OAuth Sandbox simulation protocols.
-            </span>
+                <div style={{ display: 'flex', width: '100%', gap: '0.75rem' }}>
+                  <button 
+                    onClick={handleAuthSubmit}
+                    className="btn"
+                    style={{ flex: 1, height: '44px', fontWeight: 700, borderRadius: '9999px', textTransform: 'none', boxShadow: 'none' }}
+                  >
+                    Continue
+                  </button>
+                  <button 
+                    onClick={() => setShowAuthModal(false)}
+                    className="btn btn-secondary"
+                    style={{ 
+                      flex: 1, 
+                      height: '44px', 
+                      borderRadius: '9999px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      textTransform: 'none'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Shield Check Icon for Google Permission Granting */}
+                <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'center' }}>
+                  <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'rgba(31, 164, 232, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid var(--accent)' }}>
+                    <ShieldCheck size={32} style={{ color: 'var(--accent)' }} />
+                  </div>
+                </div>
+
+                <h3 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Google OAuth Permissions</h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+                  HydraSEO wants to access your Google Account (<b>{authEmail}</b>) for your new registration.
+                </p>
+
+                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2rem', textAlign: 'left', backgroundColor: 'var(--bg-tertiary)', padding: '1rem', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start' }}>
+                    <input type="checkbox" defaultChecked disabled style={{ accentColor: 'var(--accent)', marginTop: '0.2rem' }} />
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-primary)' }}>
+                      <b>openid, profile, email</b><br />
+                      <span style={{ color: 'var(--text-secondary)' }}>View your basic account profile name, email, and avatar photo.</span>
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start', borderTop: '1px solid var(--border)', paddingTop: '0.75rem' }}>
+                    <input type="checkbox" defaultChecked style={{ accentColor: 'var(--accent)', marginTop: '0.2rem' }} />
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-primary)' }}>
+                      <b>drive.appdata</b> (Technical Audits)<br />
+                      <span style={{ color: 'var(--text-secondary)' }}>Save, sync, and retrieve your Technical SEO & Core Web Vitals reports.</span>
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', width: '100%', gap: '0.75rem' }}>
+                  <button 
+                    onClick={() => handleLogin(authEmail, authName)}
+                    className="btn"
+                    style={{ flex: 1, height: '44px', fontWeight: 700, borderRadius: '9999px', textTransform: 'none', boxShadow: 'none' }}
+                  >
+                    Grant & Complete Sign Up
+                  </button>
+                  <button 
+                    onClick={() => setAuthStep('credentials')}
+                    className="btn btn-secondary"
+                    style={{ 
+                      flex: 1, 
+                      height: '44px', 
+                      borderRadius: '9999px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      textTransform: 'none'
+                    }}
+                  >
+                    Back
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
