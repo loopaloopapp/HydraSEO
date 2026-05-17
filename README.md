@@ -30,8 +30,9 @@ Measures real-user experience timings using in-browser APIs (`window.performance
 *   **Passed & Failed Audits**: A collapsible, interactive checklist showing specific diagnostic audits (e.g. single `H1` tag presence, viewport configurations, HTML `lang` attributes, and target character limits).
 *   **Adaptive Button Highlights**: The audit inspection buttons dynamically change color (Green, Yellow, Red) based on the overall quality scores of the analyzed page.
 
-### 💾 4. Seamless Data Export
-Export technical scan results in one click to either raw **JSON** or clean **CSV** files for offline distribution or stakeholder reporting.
+### 💾 4. Seamless Data Export & Premium XML Sitemap Generator
+*   **JSON & CSV Export**: Export comprehensive scan metrics, risk index results, and audit checklists in one click for offline processing or reporting.
+*   **Premium XML Sitemap Generator**: Dynamically compile and generate a standard-compliant, search-engine-ready `sitemap.xml` file. Page priorities (ranging from `0.5` to `1.0`) are automatically calculated based on our custom technical SEO rendering and performance scores, allowing developers to generate and deploy validated sitemaps in seconds!
 
 ---
 

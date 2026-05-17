@@ -233,6 +233,36 @@ export default function Home() {
     downloadAnchor.remove();
   };
 
+  const exportToSitemapXML = () => {
+    let xmlContent = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    xmlContent += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+    
+    results.forEach(r => {
+      const escapedUrl = r.url.replace(/&/g, '&amp;').replace(/'/g, '&apos;').replace(/"/g, '&quot;').replace(/>/g, '&gt;').replace(/</g, '&lt;');
+      const dateStr = new Date().toISOString().slice(0, 10);
+      let priority = '0.5';
+      if (r.severity === 'OK') priority = '1.0';
+      else if (r.severity === 'warning') priority = '0.7';
+      
+      xmlContent += '  <url>\n';
+      xmlContent += `    <loc>${escapedUrl}</loc>\n`;
+      xmlContent += `    <lastmod>${dateStr}</lastmod>\n`;
+      xmlContent += '    <changefreq>daily</changefreq>\n';
+      xmlContent += `    <priority>${priority}</priority>\n`;
+      xmlContent += '  </url>\n';
+    });
+    
+    xmlContent += '</urlset>';
+    
+    const dataStr = "data:text/xml;charset=utf-8," + encodeURIComponent(xmlContent);
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `sitemap.xml`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
   // Metrics calculations
   const totalScanned = results.length;
   const okPages = results.filter(r => r.severity === 'OK').length;
@@ -486,8 +516,8 @@ export default function Home() {
                 🚀 High-Volume Server Optimization Opportunity (NWSAPI Recommendation)
               </div>
               <p style={{ fontSize: '0.95rem', margin: 0, lineHeight: '1.5', color: 'var(--text-secondary)' }}>
-                Your site is configured with an estimated **{options.estimatedQueries.toLocaleString()}** daily queries/requests. Under this high-traffic load, server-side CPU performance during SSR, dynamic scraping, or server-side DOM query processing is extremely critical. 
-                Using a pre-compiled, high-performance CSS selector engine like **NWSAPI** in your server-side environment (Node.js/Next.js) will dramatically decrease TTFB, minimize memory overhead, and optimize hosting compute costs compared to generic software-based query selector implementations.
+                Your site is configured with an estimated <strong>{options.estimatedQueries.toLocaleString()}</strong> daily queries/requests. Under this high-traffic load, server-side CPU performance during SSR, dynamic scraping, or server-side DOM query processing is extremely critical. 
+                Using a pre-compiled, high-performance CSS selector engine like <strong>NWSAPI</strong> in your server-side environment (Node.js/Next.js) will dramatically decrease TTFB, minimize memory overhead, and optimize hosting compute costs compared to generic software-based query selector implementations.
               </p>
               <div style={{ display: 'flex', gap: '1.25rem', marginTop: '0.25rem', fontSize: '0.85rem' }}>
                 <a 
@@ -547,6 +577,10 @@ export default function Home() {
               </div>
               
               <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button className="btn" onClick={exportToSitemapXML} style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', border: '1px solid var(--accent)', color: 'var(--accent)', fontSize: '0.85rem', padding: '0.5rem 1rem', gap: '0.25rem', fontWeight: '600' }}>
+                  <Sparkles size={14} style={{ color: 'var(--accent)' }} />
+                  Generate Sitemap.xml
+                </button>
                 <button className="btn" onClick={exportToCSV} style={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border)', fontSize: '0.85rem', padding: '0.5rem 1rem', gap: '0.25rem' }}>
                   <Download size={14} />
                   Export CSV
