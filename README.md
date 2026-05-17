@@ -1,95 +1,95 @@
 # 🚀 NVMS - Next.js Metadata Visibility Scanner
-### *Dual-Phase Technical SEO Auditor & Core Web Vitals Suite*
+### *Dual-Phase Technical SEO Auditor & Core Web Vitals Performance Suite*
 
-**NVMS** è una piattaforma di analisi e audit SEO tecnico professionale sviluppata in **Next.js**. Il suo obiettivo principale è rilevare e segnalare le pagine web in cui i tag metadata fondamentali (come `<title>`, `description`, `canonical`, `robots`, `Open Graph`, `Twitter Cards`) **non sono presenti nell'HTML iniziale (server-side)**, ma vengono caricati solo successivamente sul client tramite l'esecuzione di JavaScript. 
+**NVMS** is a professional, high-performance technical SEO auditing platform built with **Next.js**. Its core mission is to crawl, identify, and report pages in any Next.js site where critical SEO metadata (such as `<title>`, `description`, `canonical`, `robots`, `Open Graph`, and `Twitter Cards`) are missing from the initial server-rendered HTML response and are instead injected later on the client-side via JavaScript. 
 
-Questa situazione rappresenta un grave rischio per l'indicizzazione nei motori di ricerca, poiché i crawler (come Googlebot) potrebbero non elaborare correttamente o in tempo i contenuti iniettati esclusivamente via JS.
+This behavior poses a severe risk for technical SEO, as search engine crawlers (like Googlebot) may fail to accurately index or interpret client-rendered tags due to hydration delays.
 
-Inoltre, **NVMS** integra un pannello diagnostico completo in stile **Google PageSpeed Insights** che misura le performance del browser in tempo reale (Core Web Vitals) ed esegue audit tecnici per l'Accessibilità e le Best Practices.
-
----
-
-## 🌟 Funzionalità Principali
-
-### 🔍 1. Scanner di Visibilità a Doppia Fase (SSR vs CSR)
-*   **Fase Server-Side**: Analizza il markup HTML grezzo restituito dal server simulando lo User-Agent ufficiale di `Googlebot/2.1`.
-*   **Fase Client-Side**: Avvia un'istanza headless di **Playwright (Chromium)** per caricare ed eseguire completamente il codice JavaScript della pagina fino allo stato di `networkidle`.
-*   **Diff Visualizer**: Mette a confronto i tag delle due fasi ed evidenzia le anomalie di idratazione (es. tag caricati solo in CSR).
-
-### ⚡ 2. Suite PageSpeed & Core Web Vitals (Simulata & Reale)
-Misura l'esperienza utente sulla pagina catturando metriche reali e simulate ricavate direttamente dalle API del browser (`window.performance`):
-*   **Time to First Byte (TTFB)**: Velocità di risposta del server (Soglia: Ottimo < 200ms).
-*   **First Contentful Paint (FCP)**: Tempo del primo rendering visivo dei contenuti (Soglia: Ottimo < 1s).
-*   **DOM Interactive Time**: Il tempo impiegato dal DOM per diventare navigabile ed interattivo.
-*   **Cumulative Layout Shift (CLS)**: Stabilità visiva del layout durante il rendering.
-
-### 🎨 3. Quadranti Lighthouse & Checklist Interattive
-*   **Lighthouse Circular Gauges**: Quattro bellissimi quadranti ad anello animati in CSS che indicano il punteggio (0-100) per: *Performance*, *Accessibilità*, *Best Practices* ed *SEO*.
-*   **Passed & Failed Audits**: Una checklist interattiva ed espandibile che elenca tutti i controlli tecnici effettuati (es. presenza di un solo tag `H1`, viewport mobile corretto, presenza dell'attributo `lang` sul tag `html`).
-*   **Pillole di Evidenziazione Dinamiche**: I pulsanti di ispezione del report cambiano colore autonomamente (Verde, Giallo o Rosso) in base al punteggio complessivo della pagina.
-
-### 💾 4. Esportazione Dati Avanzata
-Permette di esportare i report tecnici delle scansioni in un click in formato **CSV** o **JSON**.
+Additionally, **NVMS** integrates a robust, Google PageSpeed Insights-inspired diagnostic suite that measures real-time browser performance metrics (Core Web Vitals) and performs accessibility and best practices checks.
 
 ---
 
-## 🛠️ Architettura Tecnica
+## 🌟 Core Features
 
-Il progetto è altamente modulare e strutturato in `/src`:
+### 🔍 1. Dual-Phase Visiblity Scanner (SSR vs CSR)
+*   **Server-Side Phase**: Scrapes the raw HTML payload returned directly from the server, mimicking the official `Googlebot/2.1` User Agent.
+*   **Client-Side Phase**: Spawns a headless **Playwright (Chromium)** browser to execute all Javascript logic, wait for `networkidle`, and capture the post-hydration rendered DOM.
+*   **Interactive Diff Viewer**: Performs a head-to-head field comparison to instantly pinpoint missing, mutated, or delayed metadata tags.
+
+### ⚡ 2. Core Web Vitals & Timing Diagnostics
+Measures real-user experience timings using in-browser APIs (`window.performance`):
+*   **Time to First Byte (TTFB)**: Server responsiveness (Optimal: < 200ms).
+*   **First Contentful Paint (FCP)**: The duration before the first visual content renders on screen (Optimal: < 1s).
+*   **DOM Interactive Time**: The time taken for the DOM structure to become fully clickable and interactive.
+*   **Cumulative Layout Shift (CLS)**: Visual layout stability score during page load.
+
+### 🎨 3. Lighthouse Gauges & Dynamic Audits Checklist
+*   **Lighthouse CSS Gauges**: Four premium, animatable conic-gradient rings indicating scores (0-100) for *Performance*, *Accessibility*, *Best Practices*, and *SEO*.
+*   **Passed & Failed Audits**: A collapsible, interactive checklist showing specific diagnostic audits (e.g. single `H1` tag presence, viewport configurations, HTML `lang` attributes, and target character limits).
+*   **Adaptive Button Highlights**: The audit inspection buttons dynamically change color (Green, Yellow, Red) based on the overall quality scores of the analyzed page.
+
+### 💾 4. Seamless Data Export
+Export technical scan results in one click to either raw **JSON** or clean **CSV** files for offline distribution or stakeholder reporting.
+
+---
+
+## 🛠️ Technical Architecture & Modules
+
+The project follows highly modular software engineering standards under `/src`:
 
 1.  **Crawler & Queue Management (`src/lib/crawler/`)**:
-    *   `discovery.ts`: Scansiona il DOM iniziale con Cheerio per raccogliere ed estrarre i link interni utili al crawl automatico BFS.
+    *   `discovery.ts`: Scrapes the initial Cheerio-parsed DOM to extract, clean, and queue internal anchor links for Breadth-First Search (BFS) crawling.
 2.  **Analysis Engine (`src/lib/analyzer/`)**:
-    *   `fetchInitialHtml.ts`: Client HTTP per il recupero dell'HTML puro.
-    *   `renderWithBrowser.ts`: Gestore headless Playwright con **sistema di salvaguardia try-catch**. Se i browser del server hanno problemi di dipendenze (es. ffmpeg obsoleto o vecchio OS), il sistema non va in crash e applica metriche protette autogestite.
+    *   `fetchInitialHtml.ts`: Simple raw network client for standard SSR extraction.
+    *   `renderWithBrowser.ts`: Playwright engine equipped with **self-healing browser exception handling**. If the server's OS lacks updated dynamic graphics libraries (like legacy `ffmpeg` on macOS), it gracefully catches the error and applies simulated metrics, preventing `500 Server Errors`.
 3.  **Metadata Extraction (`src/lib/extractors/`)**:
-    *   `headMetadata.ts`: Scraper del tag `<head>` per tracciare og, twitter, hreflang, robots, canonical e JSON-LD.
-    *   `lighthouseAudits.ts`: Suite di calcolo euristico per assegnare i punteggi Lighthouse.
+    *   `headMetadata.ts`: Parses and collects `<head>` elements (og, twitter, hreflang, robots, canonical, JSON-LD, etc.).
+    *   `lighthouseAudits.ts`: An heuristic execution module to generate scores for Lighthouse suites.
 4.  **Risk Scoring Engine (`src/lib/scoring/`)**:
-    *   `seoRiskScore.ts`: Calcola un indice di rischio da 0 (Perfetto) a 10+ (Critico) in base al peso dei tag mancanti all'avvio.
+    *   `seoRiskScore.ts`: Translates metadata failures and excessive CSR reliance into a risk index ranging from 0 (Perfect) to 10+ (Critical).
 
 ---
 
-## 🚀 Installazione e Avvio Locale
+## 🚀 Installation & Local Setup
 
-Assicurati di avere installato **NodeJS >= 20** sul tuo sistema.
+Make sure you have **NodeJS >= 20** installed on your local machine.
 
-### 1. Clona il repository e installa le dipendenze
+### 1. Clone the repository and install dependencies
 ```bash
 git clone https://github.com/loopaloopapp/NVMS.git
 cd NVMS
 npm install
 ```
 
-### 2. Installa i browser headless di Playwright
-Avvia l'installazione delle dipendenze di Chromium necessarie per l'analisi Playwright:
+### 2. Install Playwright Headless Browsers
+Install Playwright's headless Chromium binaries:
 ```bash
 npx playwright install chromium
 ```
 
-### 3. Avvia l'applicazione in modalità sviluppo
+### 3. Spin up the development server
 ```bash
 npm run dev
 ```
-Apri [http://localhost:3000](http://localhost:3000) sul tuo browser ed inizia a scansionare i siti!
+Open [http://localhost:3000](http://localhost:3000) inside your browser and start scanning pages!
 
 ---
 
-## 🐳 Deploy Online e Dockerizzazione
+## 🐳 Cloud Deployment & Docker
 
-Il progetto include un file [Dockerfile](file:///Users/lucaperini/Desktop/NMVS/Dockerfile) ottimizzato per il deploy cloud istantaneo. Questo file utilizza l'immagine ufficiale Microsoft Playwright pre-configurata con tutte le librerie Linux necessarie all'esecuzione di Chromium.
+The repository includes a production-ready [Dockerfile](file:///Users/lucaperini/Desktop/NMVS/Dockerfile) that leverages Microsoft's official Playwright image (pre-configured with all system and browser dependencies).
 
-### Deploy su Railway (Consigliato per Scansione Reale)
-1. Accedi a [Railway.app](https://railway.app/) tramite GitHub.
-2. Crea un **New Project** ed importa questo repository.
-3. Railway rileverà il `Dockerfile`, compilerà l'app Next.js ed esporrà il crawler funzionante online al 100%.
+### Deploy to Railway (Recommended for Active Scans)
+1. Go to [Railway.app](https://railway.app/) and log in with your GitHub account.
+2. Click **New Project** and import this repository.
+3. Railway will automatically pick up the `Dockerfile`, build the Next.js bundle, and expose a fully functional Playwright crawler online in seconds!
 
-### Deploy su Vercel (Ottimo per presentazioni e Modalità Demo)
-1. Accedi a [Vercel.com](https://vercel.com/) ed importa il repository.
-2. Clicca su **Deploy**.
-3. *Grazie al sistema di fallback, l'applicazione funzionerà in Vercel senza crash, abilitando la modalità Demo interattiva con grafici completi!*
+### Deploy to Vercel (Recommended for Demos & UI Hosting)
+1. Import your GitHub repository to [Vercel.com](https://vercel.com/).
+2. Click **Deploy**.
+3. *Vercel hosts the front-end for free. When performing scans, the app's self-healing fallback will automatically activate the interactive Demo Mode to showcase all performance gauges and UI components.*
 
 ---
 
-## 📄 Licenza
-Rilasciato sotto licenza MIT. Libero di essere modificato e integrato.
+## 📄 License
+This project is licensed under the MIT License. Feel free to modify and adapt.
