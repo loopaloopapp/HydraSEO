@@ -1,6 +1,8 @@
 # 🚀 NVMS - Next.js Metadata Visibility Scanner
 ### *Dual-Phase Technical SEO Auditor & Core Web Vitals Performance Suite*
 
+🌐 **Live Production Link**: [https://nvms-v8ec.onrender.com](https://nvms-v8ec.onrender.com)
+
 **NVMS** is a professional, high-performance technical SEO auditing platform built with **Next.js**. Its core mission is to crawl, identify, and report pages in any Next.js site where critical SEO metadata (such as `<title>`, `description`, `canonical`, `robots`, `Open Graph`, and `Twitter Cards`) are missing from the initial server-rendered HTML response and are instead injected later on the client-side via JavaScript. 
 
 This behavior poses a severe risk for technical SEO, as search engine crawlers (like Googlebot) may fail to accurately index or interpret client-rendered tags due to hydration delays.
@@ -79,15 +81,22 @@ Open [http://localhost:3000](http://localhost:3000) inside your browser and star
 
 The repository includes a production-ready [Dockerfile](file:///Users/lucaperini/Desktop/NMVS/Dockerfile) that leverages Microsoft's official Playwright image (pre-configured with all system and browser dependencies).
 
-### Deploy to Railway (Recommended for Active Scans)
-1. Go to [Railway.app](https://railway.app/) and log in with your GitHub account.
-2. Click **New Project** and import this repository.
-3. Railway will automatically pick up the `Dockerfile`, build the Next.js bundle, and expose a fully functional Playwright crawler online in seconds!
+### 🌐 Live Production Deployment (Render)
 
-### Deploy to Vercel (Recommended for Demos & UI Hosting)
+The project is configured and hosted live at:
+👉 **[https://nvms-v8ec.onrender.com](https://nvms-v8ec.onrender.com)**
+
+### Deploy to Render.com (Recommended for Active Scans)
+1. Go to [Render.com](https://render.com/) and log in with your GitHub account.
+2. Click **New +** $\rightarrow$ **Web Service**.
+3. Select and connect this repository (`loopaloopapp/NVMS`).
+4. Set the **Runtime** to **Docker** (Render will automatically detect the root `Dockerfile` powered by the Microsoft Playwright environment).
+5. Choose a tier and click **Create Web Service**. Render will automatically build the container and deploy the active Playwright web crawler online!
+
+### Deploy to Vercel (Recommended for UI Hosting)
 1. Import your GitHub repository to [Vercel.com](https://vercel.com/).
 2. Click **Deploy**.
-3. *Vercel hosts the front-end for free. When performing scans, the app's self-healing fallback will automatically activate the interactive Demo Mode to showcase all performance gauges and UI components.*
+3. *Vercel hosts the front-end for free. When performing scans, the app's self-healing fallback will automatically activate to showcase all performance gauges and UI components.*
 
 ---
 
