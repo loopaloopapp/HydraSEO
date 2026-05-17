@@ -263,7 +263,7 @@ export default function Home() {
       <header className="header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1>NVMS - Next.js Metadata Visibility Scanner</h1>
-          <p>Dual-Phase SEO Visibility Auditor & simulated Google PageSpeed Insights performance suite.</p>
+          <p>Dual-Phase SEO Visibility Auditor & simulated Insights performance suite.</p>
         </div>
       </header>
 

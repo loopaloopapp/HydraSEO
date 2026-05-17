@@ -1,5 +1,5 @@
 # 🚀 NVMS - Next.js Metadata Visibility Scanner
-### *Dual-Phase Technical SEO Auditor & Core Web Vitals Performance Suite*
+### *Dual-Phase SEO Visibility Auditor & simulated Insights performance suite.*
 
 🌐 **Live Production Link**: [https://nvms-v8ec.onrender.com](https://nvms-v8ec.onrender.com)
 
@@ -7,7 +7,7 @@
 
 This behavior poses a severe risk for technical SEO, as search engine crawlers (like Googlebot) may fail to accurately index or interpret client-rendered tags due to hydration delays.
 
-Additionally, **NVMS** integrates a robust, Google PageSpeed Insights-inspired diagnostic suite that measures real-time browser performance metrics (Core Web Vitals) and performs accessibility and best practices checks.
+Additionally, **NVMS** integrates a robust, simulated Insights-inspired diagnostic suite that measures real-time browser performance metrics (Core Web Vitals) and performs accessibility and best practices checks.
 
 ---
 
@@ -49,6 +49,34 @@ The project follows highly modular software engineering standards under `/src`:
     *   `lighthouseAudits.ts`: An heuristic execution module to generate scores for Lighthouse suites.
 4.  **Risk Scoring Engine (`src/lib/scoring/`)**:
     *   `seoRiskScore.ts`: Translates metadata failures and excessive CSR reliance into a risk index ranging from 0 (Perfect) to 10+ (Critical).
+
+---
+
+## ⚙️ Audit Configuration & Parameters
+
+The dashboard provides a powerful, professional configuration suite under **Audit Configuration** to customize the behavior of the discovery crawler and the scoring algorithms.
+
+### 📊 Configuration Options Explained:
+
+#### 1. 📄 Maximum Pages to Scan
+*   **Utility**: Defines the absolute depth limit for the crawler's Breadth-First Search (BFS) queue.
+*   **How to Use**: Set a small number (e.g., `5` to `10`) for a quick performance snapshot or single-page audit. Increase the limit (e.g., `50+` pages) to perform a comprehensive full-domain crawl of complex directories.
+
+#### 2. 🔒 Restrict to the Same Domain
+*   **Utility**: Prevents the crawler from wandering off-site into external dependencies, tracking scripts, or social media links.
+*   **How to Use**: Keep this **checked** (active) to ensure the crawler only targets and analyzes pages sharing the exact same hostname as the initial target domain. Uncheck only if you explicitly intend to audit cross-domain pathways.
+
+#### 3. 🛡️ Exclude Query Parameters
+*   **Utility**: Normalizes target URLs by stripping all query parameters (e.g., `?utm_source=...`, `?ref=...`) prior to analysis and crawling.
+*   **How to Use**: Keep this **checked** to avoid duplicate scans of identical pages (which creates rendering bottlenecks and inflates resource usage). Uncheck if query parameters dynamically render distinct content layouts that require individual technical audits.
+
+#### 4. 🚫 Ignore Routes & Paths
+*   **Utility**: Specifies a comma-separated list of route patterns or paths that the crawler must completely bypass (e.g., `/api, /admin, /login, /_next`).
+*   **How to Use**: Input paths you wish to skip (such as backend API endpoints, administrative dashboards, authentication routes, or Next.js internal folders) to optimize scan execution speed and prevent scanning secure/non-public sections of the site.
+
+#### 5. 🚀 Estimated Daily Queries / Traffic
+*   **Utility**: Instructs NVMS's architectural diagnostics engine about the daily query and request volume handled by the audited server.
+*   **How to Use**: Input your site's average daily page views or server queries. If set to a high-volume threshold (**10,000+ daily queries**), the dashboard automatically triggers custom, real-time performance optimization recommendations. It evaluates server-side CPU limits and advises on the adoption of high-speed pre-compiled DOM query engines like **NWSAPI** to reduce Time to First Byte (TTFB) and compute costs.
 
 ---
 
