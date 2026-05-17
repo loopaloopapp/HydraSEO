@@ -8,6 +8,7 @@ export interface AuditResult {
   displayValue?: string;
   category: 'performance' | 'seo' | 'best-practices' | 'accessibility';
   details?: string;
+  recommendedFix?: string; // Actionable advice to improve
 }
 
 export function runLighthouseAudits(html: string, pageLoadTimeMs: number): AuditResult[] {
@@ -16,24 +17,32 @@ export function runLighthouseAudits(html: string, pageLoadTimeMs: number): Audit
 
   // ==================== PERFORMANCE ====================
   // Audit 1: Time to First Byte & Load Time
+  const speedScore = pageLoadTimeMs < 1500 ? 1 : pageLoadTimeMs < 3000 ? 0.6 : 0.2;
   audits.push({
     id: 'load-speed',
     title: 'Page load time speed',
     description: 'Slower pages negatively impact search index rank and conversion rates.',
-    score: pageLoadTimeMs < 1500 ? 1 : pageLoadTimeMs < 3000 ? 0.6 : 0.2,
+    score: speedScore,
     displayValue: `${(pageLoadTimeMs / 1000).toFixed(2)}s`,
     category: 'performance',
+    recommendedFix: speedScore === 1 
+      ? 'Page response is optimal!' 
+      : 'Optimize server response times by setting dynamic caching headers, code-splitting client bundles, and loading heavy images lazily using next/image.'
   });
 
   // Audit 2: DOM element count count
   const elementCount = $('*').length;
+  const domScore = elementCount < 800 ? 1 : elementCount < 1500 ? 0.75 : 0.3;
   audits.push({
     id: 'dom-size',
     title: 'Avoid an excessive DOM size',
     description: 'A large DOM will increase memory usage, cause longer style calculations, and produce costly layout reflows.',
-    score: elementCount < 800 ? 1 : elementCount < 1500 ? 0.75 : 0.3,
+    score: domScore,
     displayValue: `${elementCount} elements`,
     category: 'performance',
+    recommendedFix: domScore === 1 
+      ? 'DOM nodes are perfectly balanced.' 
+      : 'Simplify your element hierarchy. Remove unnecessary wrapping <div> containers and utilize conditional client-side loading or virtualization for long lists.'
   });
 
   // ==================== SEO ====================
@@ -41,14 +50,19 @@ export function runLighthouseAudits(html: string, pageLoadTimeMs: number): Audit
   const titleText = $('title').text().trim();
   let titleScore = 0;
   let titleDisplay = 'No Title Found';
+  let titleFix = 'Add a <title> tag inside the server metadata configuration using export const metadata = { title: "Your Title" } in your NextJS layout or page component.';
+  
   if (titleText.length > 0) {
     if (titleText.length >= 40 && titleText.length <= 60) {
       titleScore = 1;
+      titleFix = 'Optimal title length configured.';
     } else {
       titleScore = 0.5;
+      titleFix = `Your title length is ${titleText.length} characters. Adjust it to be between 40 and 60 characters to ensure it displays correctly in Google's search snippets.`;
     }
     titleDisplay = `${titleText.length} characters`;
   }
+  
   audits.push({
     id: 'seo-title',
     title: 'Optimal title tag length',
@@ -56,20 +70,26 @@ export function runLighthouseAudits(html: string, pageLoadTimeMs: number): Audit
     score: titleScore,
     displayValue: titleDisplay,
     category: 'seo',
+    recommendedFix: titleFix,
   });
 
   // Audit 4: Description Length check
   const descText = $('meta[name="description"]').attr('content')?.trim() || '';
   let descScore = 0;
   let descDisplay = 'No Description Found';
+  let descFix = 'Add a <meta name="description"> tag inside the Next.js page metadata object. Descriptions are essential for attracting click-throughs from search engines.';
+  
   if (descText.length > 0) {
     if (descText.length >= 110 && descText.length <= 160) {
       descScore = 1;
+      descFix = 'Optimal meta description length configured.';
     } else {
       descScore = 0.6;
+      descFix = `Your description length is ${descText.length} characters. Adjust it to be between 110 and 160 characters to provide a clean and concise snippet to search engines.`;
     }
     descDisplay = `${descText.length} characters`;
   }
+  
   audits.push({
     id: 'seo-description',
     title: 'Optimal meta description length',
@@ -77,10 +97,20 @@ export function runLighthouseAudits(html: string, pageLoadTimeMs: number): Audit
     score: descScore,
     displayValue: descDisplay,
     category: 'seo',
+    recommendedFix: descFix,
   });
 
   // Audit 5: H1 presence and duplicates
   const h1Count = $('h1').length;
+  let h1Fix = '';
+  if (h1Count === 1) {
+    h1Fix = 'Excellent page structure!';
+  } else if (h1Count === 0) {
+    h1Fix = 'Add exactly one <h1> tag to state the primary topic of the page clearly for structural indexing.';
+  } else {
+    h1Fix = `Found ${h1Count} <h1> tags. Reduce them to exactly one main <h1> tag. Replace subheadings with <h2>, <h3> or <h4>.`;
+  }
+  
   audits.push({
     id: 'seo-h1',
     title: 'Single H1 Heading Tag presence',
@@ -88,6 +118,7 @@ export function runLighthouseAudits(html: string, pageLoadTimeMs: number): Audit
     score: h1Count === 1 ? 1 : h1Count === 0 ? 0.3 : 0.5,
     displayValue: `${h1Count} tags`,
     category: 'seo',
+    recommendedFix: h1Fix,
   });
 
   // ==================== ACCESSIBILITY ====================
@@ -100,6 +131,9 @@ export function runLighthouseAudits(html: string, pageLoadTimeMs: number): Audit
     score: viewport ? 1 : 0,
     displayValue: viewport ? 'Configured' : 'Missing',
     category: 'accessibility',
+    recommendedFix: viewport 
+      ? 'Mobile layout scaling is optimal.' 
+      : 'Add a viewport meta tag: <meta name="viewport" content="width=device-width, initial-scale=1"> inside your NextJS page head to ensure responsive rendering.'
   });
 
   // Audit 7: Image alt tags attributes
@@ -108,13 +142,18 @@ export function runLighthouseAudits(html: string, pageLoadTimeMs: number): Audit
   $('img').each((i, el) => {
     if ($(el).attr('alt') !== undefined) imagesWithAlt++;
   });
+  const altScore = totalImages === 0 ? 1 : parseFloat((imagesWithAlt / totalImages).toFixed(2));
+  
   audits.push({
     id: 'img-alts',
     title: 'Image elements have [alt] attributes',
     description: 'Informative alternative text improves search indexing and screen-reader accessibility.',
-    score: totalImages === 0 ? 1 : parseFloat((imagesWithAlt / totalImages).toFixed(2)),
+    score: altScore,
     displayValue: `${imagesWithAlt}/${totalImages} items`,
     category: 'accessibility',
+    recommendedFix: altScore === 1 
+      ? 'All images have appropriate alternative text.' 
+      : 'Provide descriptive alt="..." text attributes to all outstanding images (especially using the next/image <Image alt="Description" .../> wrapper) to enable crawler accessibility.'
   });
 
   // ==================== BEST PRACTICES ====================
@@ -127,6 +166,9 @@ export function runLighthouseAudits(html: string, pageLoadTimeMs: number): Audit
     score: langAttr ? 1 : 0,
     displayValue: langAttr || 'Missing',
     category: 'best-practices',
+    recommendedFix: langAttr 
+      ? 'HTML document language is correctly defined.' 
+      : 'Set a valid lang attribute in your root html tag (e.g. <html lang="en">) in your root layout.tsx file.'
   });
 
   // Audit 9: Charset meta tag
@@ -138,10 +180,14 @@ export function runLighthouseAudits(html: string, pageLoadTimeMs: number): Audit
     score: charset ? 1 : 0,
     displayValue: charset ? 'Configured' : 'Missing',
     category: 'best-practices',
+    recommendedFix: charset 
+      ? 'Character encoding is declared.' 
+      : 'Add <meta charset="utf-8"> inside the head component to prevent rendering artifacts on special symbols.'
   });
 
   return audits;
 }
+
 export function calculateLighthouseScores(audits: AuditResult[]): {
   performance: number;
   accessibility: number;

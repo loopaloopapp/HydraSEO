@@ -845,8 +845,30 @@ export default function Home() {
                             
                             {isExpanded && (
                               <div className="audit-details-panel">
-                                <p style={{ marginBottom: '0.5rem' }}>{audit.description}</p>
-                                <div style={{ fontSize: '0.8rem', color: 'var(--text-primary)', display: 'flex', gap: '1rem' }}>
+                                <p style={{ marginBottom: '0.75rem' }}>{audit.description}</p>
+                                
+                                {audit.recommendedFix && (
+                                  <div style={{ 
+                                    backgroundColor: 'rgba(59, 130, 246, 0.06)', 
+                                    border: '1px solid rgba(59, 130, 246, 0.2)', 
+                                    padding: '0.75rem 1rem', 
+                                    borderRadius: '8px', 
+                                    marginBottom: '0.75rem',
+                                    fontSize: '0.85rem',
+                                    color: 'var(--text-primary)',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '0.25rem'
+                                  }}>
+                                    <span style={{ fontWeight: '700', color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                      <Sparkles size={14} />
+                                      💡 Recommended Fix / Opportunity:
+                                    </span>
+                                    <span>{audit.recommendedFix}</span>
+                                  </div>
+                                )}
+
+                                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', gap: '1rem', borderTop: '1px solid var(--border)', paddingTop: '0.5rem' }}>
                                   <span><strong>Audit Category:</strong> {audit.category.toUpperCase()}</span>
                                   <span><strong>Score Index:</strong> {audit.score * 100}/100</span>
                                 </div>
