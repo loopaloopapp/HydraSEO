@@ -6,7 +6,7 @@ import {
   ChevronRight, Download, Filter, HelpCircle, FileText, Check, ShieldAlert,
   Server, Laptop, Sparkles, ArrowRight, Gauge, Activity, Compass, Settings, ChevronDown, ChevronUp
 } from 'lucide-react';
-import { mockScanResults } from '@/lib/mockData';
+
 
 interface ScanOption {
   limit: number;
@@ -26,7 +26,6 @@ export default function Home() {
     respectRobots: true,
   });
 
-  const [demoMode, setDemoMode] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [progress, setProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState('');
@@ -40,30 +39,6 @@ export default function Home() {
   // Tabs inside Drawer
   const [drawerTab, setDrawerTab] = useState<'seo-diff' | 'pagespeed' | 'audits'>('seo-diff');
 
-  const startDemoScan = () => {
-    setIsScanning(true);
-    setProgress(0);
-    setResults([]);
-    setSelectedResult(null);
-    setStatusMessage('Initializing Demo PageSpeed & SEO Analyzer...');
-    
-    let currentStep = 0;
-    const totalSteps = mockScanResults.length;
-    
-    const interval = setInterval(() => {
-      if (currentStep < totalSteps) {
-        const item = mockScanResults[currentStep];
-        setStatusMessage(`Analyzing performance timing and SEO audit on (${currentStep + 1}/${totalSteps}): ${item.url}`);
-        setResults(prev => [...prev, item]);
-        currentStep++;
-        setProgress(Math.round((currentStep / totalSteps) * 100));
-      } else {
-        clearInterval(interval);
-        setIsScanning(false);
-        setStatusMessage('Scan complete! Lighthouse metrics simulated.');
-      }
-    }, 1500);
-  };
 
   const startRealScan = async () => {
     if (!urlInput) return;
@@ -185,11 +160,7 @@ export default function Home() {
       setIsScanning(false);
       setStatusMessage('Scan stopped.');
     } else {
-      if (demoMode) {
-        startDemoScan();
-      } else {
-        startRealScan();
-      }
+      startRealScan();
     }
   };
 
@@ -284,18 +255,6 @@ export default function Home() {
           <h1>NVMS - Next.js Metadata Visibility Scanner</h1>
           <p>Dual-Phase SEO Visibility Auditor & simulated Google PageSpeed Insights performance suite.</p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <label className="checkbox-label" style={{ backgroundColor: 'var(--bg-secondary)', padding: '0.5rem 1rem', borderRadius: '10px', border: '1px solid var(--border)' }}>
-            <input 
-              type="checkbox" 
-              checked={demoMode} 
-              onChange={(e) => setDemoMode(e.target.checked)} 
-              disabled={isScanning}
-            />
-            <Sparkles size={16} style={{ color: 'var(--warning)' }} />
-            Demo Mode (Mock PageSpeed Data)
-          </label>
-        </div>
       </header>
 
       {/* Settings Form */}
@@ -312,16 +271,16 @@ export default function Home() {
               type="text" 
               id="url-input"
               className="input" 
-              placeholder={demoMode ? "https://example-nextjs-app.com (Click Start Scan to trigger demo)" : "https://example-nextjs-app.com"}
+              placeholder="https://example-nextjs-app.com"
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
-              disabled={isScanning || demoMode}
+              disabled={isScanning}
             />
           </div>
           <button 
             className="btn" 
             onClick={handleScanToggle}
-            disabled={!demoMode && !urlInput}
+            disabled={!urlInput}
             style={{ height: '48px', gap: '0.5rem' }}
           >
             {isScanning ? (
