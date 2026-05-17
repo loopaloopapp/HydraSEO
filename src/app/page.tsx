@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { 
   Play, Square, AlertCircle, AlertTriangle, CheckCircle, Info, 
   ChevronRight, Download, Filter, HelpCircle, FileText, Check, ShieldAlert,
-  Server, Laptop, Sparkles, ArrowRight, Gauge, Activity, Compass, Settings, ChevronDown, ChevronUp, Network, CornerDownRight
+  Server, Laptop, Sparkles, ArrowRight, Gauge, Activity, Compass, Settings, ChevronDown, ChevronUp, Network, CornerDownRight, GitCompare
 } from 'lucide-react';
 
 
@@ -127,6 +127,72 @@ export default function Home() {
       setReferrals(scan.referralsMap);
     }
     setStatusMessage(`Loaded cached audit from ${scan.date}`);
+  };
+
+  // Comparison States
+  const [compareSourceId, setCompareSourceId] = useState<string>('');
+  const [compareTargetId, setCompareTargetId] = useState<string>('');
+  const [compareResult, setCompareResult] = useState<any | null>(null);
+
+  const handleCompare = () => {
+    if (!compareSourceId || !compareTargetId) return;
+    const source = savedScans.find(s => s.id === compareSourceId);
+    const target = savedScans.find(s => s.id === compareTargetId);
+    if (!source || !target) return;
+
+    // Calculate score averages
+    const avgScore = (resultsList: any[], category: string) => {
+      if (!resultsList || resultsList.length === 0) return 0;
+      const valid = resultsList.filter(r => r.lighthouseScores && r.lighthouseScores[category] !== undefined);
+      if (valid.length === 0) return 0;
+      return Math.round((valid.reduce((acc, curr) => acc + curr.lighthouseScores[category], 0) / valid.length) * 100);
+    };
+
+    const sourceSeo = avgScore(source.results, 'seo');
+    const targetSeo = avgScore(target.results, 'seo');
+    const sourcePerf = avgScore(source.results, 'performance');
+    const targetPerf = avgScore(target.results, 'performance');
+
+    // Path deltas
+    const sourceUrls = new Set(source.results.map((r: any) => r.url));
+    const targetUrls = new Set(target.results.map((r: any) => r.url));
+
+    const added = target.results.filter((r: any) => !sourceUrls.has(r.url)).map((r: any) => r.url);
+    const deleted = source.results.filter((r: any) => !targetUrls.has(r.url)).map((r: any) => r.url);
+    
+    // Regressions: paths that are in both but target has higher risk score or lower seo score
+    const regressions: any[] = [];
+    target.results.forEach((tarPage: any) => {
+      const srcPage = source.results.find((s: any) => s.url === tarPage.url);
+      if (srcPage) {
+        const srcRisk = srcPage.riskScore || 0;
+        const tarRisk = tarPage.riskScore || 0;
+        if (tarRisk > srcRisk) {
+          regressions.push({
+            url: tarPage.url,
+            srcRisk,
+            tarRisk,
+            delta: Number((tarRisk - srcRisk).toFixed(1))
+          });
+        }
+      }
+    });
+
+    setCompareResult({
+      sourceUrl: source.url,
+      targetUrl: target.url,
+      sourceDate: source.date,
+      targetDate: target.date,
+      sourceCount: source.results.length,
+      targetCount: target.results.length,
+      sourceSeo,
+      targetSeo,
+      sourcePerf,
+      targetPerf,
+      added,
+      deleted,
+      regressions
+    });
   };
 
   const startRealScan = async () => {
@@ -545,10 +611,11 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 📁 User Saved Audits History (Only for Logged-In Users) */}
+      {/* User Saved Audits History (Only for Logged-In Users) */}
       {user && (
-        <div className="card" style={{ marginTop: '1.5rem', borderLeft: '4px solid var(--accent)' }}>
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '1.25rem' }}>
+        <>
+          <div className="card" style={{ marginTop: '1.5rem', borderLeft: '4px solid var(--accent)' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '1.25rem' }}>
             <FileText size={18} style={{ color: 'var(--accent)' }} />
             <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Saved Audits Index ({user.name})</h2>
           </div>
@@ -636,6 +703,140 @@ export default function Home() {
             </div>
           )}
         </div>
+
+        {/* Comparative Staging vs Production SEO Auditor */}
+        {savedScans.length >= 2 && (
+          <div className="card" style={{ marginTop: '1.5rem', borderLeft: '4px solid var(--accent)' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <GitCompare size={18} style={{ color: 'var(--accent)' }} />
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Staging vs Production Technical Compare</h2>
+            </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label>Baseline / Production Audit</label>
+                <select 
+                  className="input" 
+                  value={compareSourceId} 
+                  onChange={(e) => setCompareSourceId(e.target.value)}
+                >
+                  <option value="">Select baseline audit...</option>
+                  {savedScans.map(s => (
+                    <option key={s.id} value={s.id}>{s.url} ({s.date})</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label>Compare / Staging Audit</label>
+                <select 
+                  className="input" 
+                  value={compareTargetId} 
+                  onChange={(e) => setCompareTargetId(e.target.value)}
+                >
+                  <option value="">Select staging audit...</option>
+                  {savedScans.map(s => (
+                    <option key={s.id} value={s.id}>{s.url} ({s.date})</option>
+                  ))}
+                </select>
+              </div>
+              
+              <button 
+                className="btn" 
+                onClick={handleCompare}
+                disabled={!compareSourceId || !compareTargetId}
+                style={{ height: '42px' }}
+              >
+                Analyze Differences
+              </button>
+            </div>
+            
+            {compareResult && (
+              <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1.5rem', marginTop: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                  <div style={{ backgroundColor: 'rgba(255,255,255,0.01)', border: '1px solid var(--border)', borderRadius: '12px', padding: '1rem', textAlign: 'center' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Audited Routes Count</span>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '0.25rem' }}>
+                      {compareResult.sourceCount} vs {compareResult.targetCount}
+                    </div>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: compareResult.targetCount >= compareResult.sourceCount ? 'var(--success)' : 'var(--warning)' }}>
+                      {compareResult.targetCount - compareResult.sourceCount >= 0 ? `+${compareResult.targetCount - compareResult.sourceCount} pages` : `${compareResult.targetCount - compareResult.sourceCount} pages`}
+                    </span>
+                  </div>
+                  
+                  <div style={{ backgroundColor: 'rgba(255,255,255,0.01)', border: '1px solid var(--border)', borderRadius: '12px', padding: '1rem', textAlign: 'center' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Average SEO Quality</span>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--success)' }}>
+                      {compareResult.sourceSeo}% vs {compareResult.targetSeo}%
+                    </div>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: compareResult.targetSeo >= compareResult.sourceSeo ? 'var(--success)' : 'var(--danger)' }}>
+                      {compareResult.targetSeo - compareResult.sourceSeo >= 0 ? `+${compareResult.targetSeo - compareResult.sourceSeo}% improvement` : `${compareResult.targetSeo - compareResult.sourceSeo}% regression`}
+                    </span>
+                  </div>
+                  
+                  <div style={{ backgroundColor: 'rgba(255,255,255,0.01)', border: '1px solid var(--border)', borderRadius: '12px', padding: '1rem', textAlign: 'center' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Average Performance Speed</span>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--success)' }}>
+                      {compareResult.sourcePerf}% vs {compareResult.targetPerf}%
+                    </div>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: compareResult.targetPerf >= compareResult.sourcePerf ? 'var(--success)' : 'var(--danger)' }}>
+                      {compareResult.targetPerf - compareResult.sourcePerf >= 0 ? `+${compareResult.targetPerf - compareResult.sourcePerf}% speedup` : `${compareResult.targetPerf - compareResult.sourcePerf}% slowdown`}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Regressions alert */}
+                {compareResult.regressions.length > 0 && (
+                  <div style={{ backgroundColor: 'rgba(250, 82, 82, 0.03)', border: '1px solid rgba(250, 82, 82, 0.15)', borderRadius: '12px', padding: '1.25rem', marginBottom: '1.5rem' }}>
+                    <h4 style={{ color: 'var(--danger)', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.025em' }}>
+                      Technical SEO Risk Regressions Detected
+                    </h4>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+                      The following pages show an elevated SEO risk index in the staging environment. This is typically due to new heavy CSR hydration reliance or missing canonical/meta tags:
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {compareResult.regressions.map((reg: any, i: number) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '0.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                          <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>{reg.url}</span>
+                          <span style={{ color: 'var(--danger)', fontWeight: 700 }}>+{reg.delta} risk index increase ({reg.srcRisk} to {reg.tarRisk})</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '12px', padding: '1rem' }}>
+                    <h4 style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '0.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.25rem' }}>
+                      New Discovered Paths ({compareResult.added.length})
+                    </h4>
+                    {compareResult.added.length === 0 ? (
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>No new paths discovered in comparison scan.</span>
+                    ) : (
+                      <ul style={{ paddingLeft: '1rem', fontSize: '0.8rem', fontFamily: 'monospace', display: 'flex', flexDirection: 'column', gap: '0.25rem', listStyleType: 'none' }}>
+                        {compareResult.added.map((path: string, i: number) => <li key={i}>{path}</li>)}
+                      </ul>
+                    )}
+                  </div>
+                  
+                  <div style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '12px', padding: '1rem' }}>
+                    <h4 style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '0.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.25rem' }}>
+                      Removed / Missing Paths ({compareResult.deleted.length})
+                    </h4>
+                    {compareResult.deleted.length === 0 ? (
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>No paths removed in comparison scan.</span>
+                    ) : (
+                      <ul style={{ paddingLeft: '1rem', fontSize: '0.8rem', fontFamily: 'monospace', display: 'flex', flexDirection: 'column', gap: '0.25rem', listStyleType: 'none' }}>
+                        {compareResult.deleted.map((path: string, i: number) => <li key={i}>{path}</li>)}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        </>
       )}
 
       {/* Progress */}
@@ -695,7 +896,7 @@ export default function Home() {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '700', color: 'var(--danger)', fontSize: '1rem' }}>
                 <ShieldAlert size={20} />
-                ⚠️ Performance Alert: Client-Side DOM Selector Engine Detected
+                Performance Alert: Client-Side DOM Selector Engine Detected
               </div>
               <p style={{ fontSize: '0.95rem', margin: 0, lineHeight: '1.5', color: 'var(--text-secondary)' }}>
                 One or more scanned pages are bundling heavy DOM selector libraries client-side. Modern browsers support highly optimized, compiled native CSS selector engines (<code>querySelectorAll</code>) that are significantly faster.
@@ -712,7 +913,7 @@ export default function Home() {
                 flexDirection: 'column',
                 gap: '0.25rem'
               }}>
-                <span style={{ fontWeight: '700', color: 'var(--accent)' }}>💡 Recommended Architecture:</span>
+                <span style={{ fontWeight: '700', color: 'var(--accent)' }}>Recommended Architecture:</span>
                 <span>
                   If you require a fast headless DOM parser and selector resolver for server-side HTML scraping or headless testing in Node.js, we highly recommend leveraging NWSAPI:
                 </span>
@@ -723,7 +924,7 @@ export default function Home() {
                     rel="noopener noreferrer" 
                     style={{ color: 'var(--accent)', textDecoration: 'underline', fontWeight: '600' }}
                   >
-                    📦 Download NWSAPI via NPM
+                    Download NWSAPI via NPM
                   </a>
                   <a 
                     href="https://github.com/dperini/nwsapi" 
@@ -731,7 +932,7 @@ export default function Home() {
                     rel="noopener noreferrer" 
                     style={{ color: 'var(--accent)', textDecoration: 'underline', fontWeight: '600' }}
                   >
-                    💻 NWSAPI Github Repository
+                    NWSAPI Github Repository
                   </a>
                 </div>
               </div>
@@ -754,7 +955,7 @@ export default function Home() {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '700', color: 'var(--accent)', fontSize: '1rem' }}>
                 <Sparkles size={20} style={{ color: 'var(--accent)' }} />
-                🚀 High-Volume Server Optimization Opportunity (NWSAPI Recommendation)
+                High-Volume Server Optimization Opportunity (NWSAPI Recommendation)
               </div>
               <p style={{ fontSize: '0.95rem', margin: 0, lineHeight: '1.5', color: 'var(--text-secondary)' }}>
                 Your site is configured with an estimated <strong>{options.estimatedQueries.toLocaleString()}</strong> daily queries/requests. Under this high-traffic load, server-side CPU performance during SSR, dynamic scraping, or server-side DOM query processing is extremely critical. 
@@ -767,7 +968,7 @@ export default function Home() {
                   rel="noopener noreferrer" 
                   style={{ color: 'var(--accent)', textDecoration: 'underline', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
                 >
-                  📦 Get NWSAPI from NPM Registry
+                  Get NWSAPI from NPM Registry
                 </a>
                 <a 
                   href="https://github.com/dperini/nwsapi" 
@@ -775,7 +976,7 @@ export default function Home() {
                   rel="noopener noreferrer" 
                   style={{ color: 'var(--accent)', textDecoration: 'underline', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
                 >
-                  💻 Official NWSAPI GitHub Project
+                  Official NWSAPI GitHub Project
                 </a>
               </div>
             </div>
@@ -910,7 +1111,7 @@ export default function Home() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                 <Network size={18} style={{ color: 'var(--accent)' }} />
-                <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>🌐 Interactive Crawl Hierarchy Map</span>
+                <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>Interactive Crawl Hierarchy Map</span>
               </div>
               <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-secondary)', padding: '0.25rem 0.5rem', borderRadius: '4px' }}>
                 Visualizes site structure and internal link pathway discoveries
@@ -1329,7 +1530,7 @@ export default function Home() {
                                   }}>
                                     <span style={{ fontWeight: '700', color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                                       <Sparkles size={14} />
-                                      💡 Recommended Fix / Opportunity:
+                                      Recommended Fix / Opportunity:
                                     </span>
                                     <span>{audit.recommendedFix}</span>
                                   </div>
@@ -1441,7 +1642,7 @@ export default function Home() {
             </div>
             
             <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem', justifyContent: 'center' }}>
-              🔒 Secured by Google OAuth Sandbox simulation protocols.
+              Secured by Google OAuth Sandbox simulation protocols.
             </span>
           </div>
         </div>
