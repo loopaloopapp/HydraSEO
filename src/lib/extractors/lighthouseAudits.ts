@@ -11,7 +11,7 @@ export interface AuditResult {
   recommendedFix?: string; // Actionable advice to improve
 }
 
-export function runLighthouseAudits(html: string, pageLoadTimeMs: number, targetUrl?: string): AuditResult[] {
+export function runLighthouseAudits(html: string, pageLoadTimeMs: number, targetUrl?: string, isBlockedByRobots?: boolean): AuditResult[] {
   const $ = cheerio.load(html);
   const audits: AuditResult[] = [];
 
@@ -260,6 +260,19 @@ export function runLighthouseAudits(html: string, pageLoadTimeMs: number, target
     displayValue: canonicalDisplay,
     category: 'seo',
     recommendedFix: canonicalFix
+  });
+
+  // Audit 12: Robots.txt Disallow directives validation
+  audits.push({
+    id: 'seo-robots',
+    title: 'robots.txt Search Engine Crawl Visibility',
+    description: 'robots.txt directives can block search engines from crawling and indexing your content.',
+    score: isBlockedByRobots ? 0.3 : 1.0,
+    displayValue: isBlockedByRobots ? 'Blocked (Disallowed)' : 'Visible (Allowed)',
+    category: 'seo',
+    recommendedFix: isBlockedByRobots 
+      ? 'Your robots.txt file has a Disallow directive matching this pathname. Search engines will not crawl or index this page. If this is unintended, edit your robots.txt to remove the disallow rule.'
+      : 'This page path is fully crawlable and open to search engine indexing.'
   });
 
   return audits;

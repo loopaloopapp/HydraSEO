@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { 
   Play, Square, AlertCircle, AlertTriangle, CheckCircle, Info, 
   ChevronRight, Download, Filter, HelpCircle, FileText, Check, ShieldAlert,
-  Server, Laptop, Sparkles, ArrowRight, Gauge, Activity, Compass, Settings, ChevronDown, ChevronUp
+  Server, Laptop, Sparkles, ArrowRight, Gauge, Activity, Compass, Settings, ChevronDown, ChevronUp, Network, CornerDownRight
 } from 'lucide-react';
 
 
@@ -34,6 +34,7 @@ export default function Home() {
   const [results, setResults] = useState<any[]>([]);
   const [filterSeverity, setFilterSeverity] = useState<string>('all');
   const [selectedResult, setSelectedResult] = useState<any | null>(null);
+  const [referrals, setReferrals] = useState<Record<string, string>>({});
   
   // Audits Accordion State
   const [openAudits, setOpenAudits] = useState<Record<string, boolean>>({});
@@ -49,6 +50,7 @@ export default function Home() {
     setProgress(0);
     setResults([]);
     setSelectedResult(null);
+    setReferrals({});
     setStatusMessage('Bootstrapping crawler instance...');
 
     let resolvedStartUrl = urlInput;
@@ -115,6 +117,7 @@ export default function Home() {
             
             currentVisited.add(link);
             nextQueue.push(link);
+            setReferrals(prev => ({ ...prev, [link]: currentUrl }));
           }
         });
 
@@ -661,6 +664,113 @@ export default function Home() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          {/* 🌐 Interactive Visual Crawl Hierarchy Map */}
+          <div className="card" style={{ marginTop: '1.5rem', borderLeft: '4px solid var(--accent)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <Network size={18} style={{ color: 'var(--accent)' }} />
+                <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>🌐 Interactive Crawl Hierarchy Map</span>
+              </div>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-secondary)', padding: '0.25rem 0.5rem', borderRadius: '4px' }}>
+                Visualizes site structure and internal link pathway discoveries
+              </span>
+            </div>
+
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '0.75rem', 
+              maxHeight: '400px', 
+              overflowY: 'auto', 
+              padding: '0.5rem',
+              backgroundColor: 'var(--bg-secondary)',
+              borderRadius: '8px',
+              border: '1px solid var(--border)'
+            }}>
+              {results.map((r, i) => {
+                const parent = referrals[r.url];
+                const hasParent = !!parent;
+                
+                let statusBadge = (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--success)', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                    <Server size={12} /> SSR
+                  </span>
+                );
+                
+                const robotsAudit = r.lighthouse?.audits?.find((a: any) => a.id === 'seo-robots');
+                const isDisallowed = robotsAudit && robotsAudit.score < 1.0;
+                
+                if (isDisallowed) {
+                  statusBadge = (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--danger)', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                      <ShieldAlert size={12} /> BLOCKED (robots.txt)
+                    </span>
+                  );
+                } else if (r.status === 404) {
+                  statusBadge = (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--danger)', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                      <AlertTriangle size={12} /> 404 BROKEN
+                    </span>
+                  );
+                } else if (r.isCSRDependent) {
+                  statusBadge = (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--warning)', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                      <Laptop size={12} /> CSR (Heavy JS)
+                    </span>
+                  );
+                }
+
+                return (
+                  <div 
+                    key={i} 
+                    onClick={() => { setSelectedResult(r); setDrawerTab('seo-diff'); }}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      padding: '0.75rem 1rem',
+                      backgroundColor: 'var(--bg-primary)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      marginLeft: hasParent ? '1.5rem' : '0px',
+                      borderLeft: isDisallowed || r.status === 404 ? '4px solid var(--danger)' : r.isCSRDependent ? '4px solid var(--warning)' : '4px solid var(--success)',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+                      transition: 'all 0.2s ease',
+                      position: 'relative'
+                    }}
+                  >
+                    {hasParent && (
+                      <div style={{
+                        position: 'absolute',
+                        left: '-1rem',
+                        top: '50%',
+                        width: '1rem',
+                        height: '1px',
+                        backgroundColor: 'var(--border)',
+                        borderLeft: '1px solid var(--border)',
+                        transform: 'translateY(-50%)'
+                      }} />
+                    )}
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+                      <span style={{ fontSize: '0.85rem', fontFamily: 'monospace', fontWeight: '600', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {r.url}
+                      </span>
+                      {statusBadge}
+                    </div>
+                    
+                    {hasParent && (
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <CornerDownRight size={10} style={{ color: 'var(--accent)' }} />
+                        Discovered on: <span style={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>{parent}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </>
