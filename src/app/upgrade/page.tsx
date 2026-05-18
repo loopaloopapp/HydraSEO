@@ -8,9 +8,13 @@ import { Sparkles, Check, ArrowLeft } from 'lucide-react';
 // ---------- Helper to load PayPal SDK ----------
 const loadPayPalScript = (clientId: string) => {
   return new Promise<void>((resolve, reject) => {
-    if (document.getElementById('paypal-sdk')) {
+    if (typeof (window as any).paypal !== 'undefined') {
       resolve();
       return;
+    }
+    const existingScript = document.getElementById('paypal-sdk');
+    if (existingScript) {
+      existingScript.remove(); // Remove failed or stale script tag to force reload
     }
     const script = document.createElement('script');
     script.id = 'paypal-sdk';
@@ -66,10 +70,10 @@ export default function UpgradePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
   
-  // Use robust sandbox client ID as fallback so PayPal script ALWAYS loads perfectly
+  // Use robust sandbox client ID 'sb' as fallback so PayPal script ALWAYS loads perfectly
   const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID && process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID !== 'YOUR_PAYPAL_CLIENT_ID'
     ? process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
-    : 'ASx_wN2aO8W_y2N7pTks3-4qZ2yZ0LqE6l9n2tS5kQ2O6E0Lz2B0I1v8A8u6o5M6H0S6F9H9J2X8H7S2';
+    : 'sb';
 
   useEffect(() => {
     // Get logged in user from localStorage
@@ -149,7 +153,11 @@ export default function UpgradePage() {
 
   useEffect(() => {
     if (!isLoading) {
-      packages.forEach(renderPayPalButton);
+      // Small timeout to guarantee DOM nodes are fully mounted
+      const timer = setTimeout(() => {
+        packages.forEach(renderPayPalButton);
+      }, 100);
+      return () => clearTimeout(timer);
     }
   }, [isLoading, currentUser]);
 
