@@ -93,8 +93,9 @@ export async function POST(req: NextRequest) {
 
     // Launch Playwright for full render & performance audits
     const renderedHtmlRes = await renderWithBrowser(url);
-    const renderedMetadata = extractHeadMetadata(renderedHtmlRes.html);
-    const renderedContent = extractContentSignals(renderedHtmlRes.html);
+    const renderedHtml = renderedHtmlRes.html || initialHtmlRes.html;
+    const renderedMetadata = extractHeadMetadata(renderedHtml);
+    const renderedContent = extractContentSignals(renderedHtml);
 
     const isCSRDependent = compareContent(initialContent, renderedContent);
     const metadataDiffs = compareMetadata(initialMetadata, renderedMetadata);
@@ -105,7 +106,7 @@ export async function POST(req: NextRequest) {
     const robotsResult = await checkRobotsTxt(url);
 
     // Execute Lighthouse audit logic on rendered DOM
-    const audits = runLighthouseAudits(renderedHtmlRes.html, renderedHtmlRes.metrics.loadTime, initialHtmlRes.finalUrl, robotsResult.isBlocked);
+    const audits = runLighthouseAudits(renderedHtml, renderedHtmlRes.metrics.loadTime, initialHtmlRes.finalUrl, robotsResult.isBlocked);
     const lhScores = calculateLighthouseScores(audits);
 
     return NextResponse.json({
