@@ -6,7 +6,7 @@ import {
   Play, Square, AlertCircle, AlertTriangle, CheckCircle, Info, 
   ChevronRight, Download, Filter, HelpCircle, FileText, Check, ShieldAlert, ShieldCheck,
   Server, Laptop, Sparkles, ArrowRight, Gauge, Activity, Compass, Settings, ChevronDown, ChevronUp, Network, CornerDownRight, GitCompare,
-  Sun, Moon, X, Brain, Wrench, ExternalLink
+  Sun, Moon, X, Brain, Wrench, ExternalLink, Globe, Upload, Database, TrendingUp, Layers, Table, Map, Search
 } from 'lucide-react';
 
 
@@ -40,7 +40,7 @@ export default function Home() {
   const [referrals, setReferrals] = useState<Record<string, string>>({});
   
   // 🧠 AI Presence & Brand Search Optimization (AIO) States
-  const [scanMode, setScanMode] = useState<'seo' | 'aio'>('seo');
+  const [scanMode, setScanMode] = useState<'seo' | 'aio' | 'geo'>('seo');
   const [brandName, setBrandName] = useState('');
   const [brandIndustry, setBrandIndustry] = useState('');
   const [brandCompetitors, setBrandCompetitors] = useState('');
@@ -51,6 +51,16 @@ export default function Home() {
   const [aioStatusMessage, setAioStatusMessage] = useState('');
   const [aioResults, setAioResults] = useState<any | null>(null);
   const [selectedAioPromptId, setSelectedAioPromptId] = useState<string | null>(null);
+
+  // 🌍 GEO Lens (Organic vs AI Visibility) States
+  const [geoQueriesInput, setGeoQueriesInput] = useState('');
+  const [geoGscFileName, setGeoGscFileName] = useState('');
+  const [isScanningGeo, setIsScanningGeo] = useState(false);
+  const [geoProgress, setGeoProgress] = useState(0);
+  const [geoStatusMessage, setGeoStatusMessage] = useState('');
+  const [geoResults, setGeoResults] = useState<any | null>(null);
+  const [geoSearchQuery, setGeoSearchQuery] = useState('');
+  const [geoFilterGap, setGeoFilterGap] = useState('all');
 
   // Authentication & Saved Scans States
   const [user, setUser] = useState<any | null>(null);
@@ -444,6 +454,116 @@ export default function Home() {
       setAioStatusMessage(`AIO analysis error: ${err.message || 'Server error'}`);
     } finally {
       setIsScanningAio(false);
+    }
+  };
+
+  const startGeoScan = async () => {
+    // 🕵️ Anti-Abuse & Monetization Checks
+    const fp = hardwareFingerprint || getDeviceFingerprint();
+    const isPro = userPlan !== 'Free Tier';
+    const currentLimit = userPlan === 'Ultimate (Infinite)' ? Infinity : 
+                         userPlan === 'Pro (100 Scans)' ? 100 : 
+                         userPlan === 'Pro (500 Scans)' ? 500 : 
+                         userPlan === 'Pro (1000 Scans)' ? 1000 : 
+                         1; // free tier limited to a single scan
+
+    if (globalScanCount >= currentLimit) {
+      if (userPlan === 'Free Tier') {
+        setAbuseBlockMessage(`You have reached the free scan limit (1 scan). Please sign in with Google and upgrade to a Pro plan to continue.`);
+        setShowAuthModal(true);
+        setAuthStep('credentials');
+      } else {
+        setAbuseBlockMessage(`You have exhausted your active plan allowance of ${currentLimit} scans. Please purchase a new package.`);
+        setShowUpgradeModal(true);
+      }
+      return;
+    }
+
+    setIsScanningGeo(true);
+    setGeoProgress(5);
+    setGeoResults(null);
+    setGeoStatusMessage('Initializing GSC query mapping and engine crawl...');
+
+    try {
+      const progressSteps = [
+        { progress: 15, msg: 'Importing queries and matching organic positions...' },
+        { progress: 40, msg: 'Crawling Perplexity, ChatGPT, and Gemini for direct citations...' },
+        { progress: 65, msg: 'Extracting semantic entities (brands, pricing, authors)...' },
+        { progress: 85, msg: 'Calculating GEO Gap Index coefficients and recommended actions...' },
+        { progress: 95, msg: 'Finalizing organic vs generative visibility matrix...' }
+      ];
+
+      for (const step of progressSteps) {
+        await new Promise(resolve => setTimeout(resolve, 800));
+        setGeoProgress(step.progress);
+        setGeoStatusMessage(step.msg);
+      }
+
+      const response = await fetch('/api/geoAnalyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          queries: geoQueriesInput,
+          brandName: brandName || 'HydraSEO',
+          competitor: brandCompetitors.split(',')[0] || 'Semrush'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`GEO API returned status ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      setGeoProgress(100);
+      setGeoStatusMessage('GEO Lens analysis completed successfully!');
+      setGeoResults(data);
+
+      // Increment quota count
+      const nextCount = globalScanCount + 1;
+      setGlobalScanCount(nextCount);
+
+      // Sync count to DB if logged in
+      if (user) {
+        fetch('/api/syncUser', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: user.email, action: 'updateScans', scans_used: nextCount })
+        }).catch(err => console.error("Neon DB Sync Error", err));
+      }
+
+      // Sync count to LocalStorage fingerprint database
+      let latestFpDb: Record<string, { totalScans: number; emails: string[] }> = {};
+      const currentDb = localStorage.getItem('hydraseo_fingerprint_db');
+      if (currentDb) {
+        try { latestFpDb = JSON.parse(currentDb); } catch {}
+      }
+      const machineData = latestFpDb[fp] || { totalScans: 0, emails: [] };
+      machineData.totalScans = Math.max(machineData.totalScans + 1, nextCount);
+      if (user && !machineData.emails.includes(user.email)) {
+        machineData.emails.push(user.email);
+      }
+      latestFpDb[fp] = machineData;
+      localStorage.setItem('hydraseo_fingerprint_db', JSON.stringify(latestFpDb));
+
+      // Persist fallback cookie
+      if (typeof document !== 'undefined') {
+        const cookieExpiry = new Date();
+        cookieExpiry.setFullYear(cookieExpiry.getFullYear() + 2);
+        document.cookie = `hydraseo_usage_${fp}=${machineData.totalScans}; expires=${cookieExpiry.toUTCString()}; path=/; SameSite=Lax`;
+      }
+
+    } catch (err: any) {
+      console.error(err);
+      setGeoStatusMessage(`GEO analysis error: ${err.message || 'Server error'}`);
+    } finally {
+      setIsScanningGeo(false);
+    }
+  };
+
+  const exportToPdf = () => {
+    if (typeof window !== 'undefined') {
+      window.print();
     }
   };
 
@@ -949,10 +1069,30 @@ export default function Home() {
           <Brain size={14} />
           AI Presence Audit (AIO)
         </button>
+        <button
+          onClick={() => setScanMode('geo')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.5rem 1.5rem',
+            borderRadius: '9999px',
+            backgroundColor: scanMode === 'geo' ? 'var(--accent)' : 'transparent',
+            color: scanMode === 'geo' ? '#0a0e15' : 'var(--text-secondary)',
+            fontWeight: 700,
+            fontSize: '0.8rem',
+            border: 'none',
+            cursor: 'pointer',
+            transition: 'all 0.25s cubic-bezier(0.2, 0, 0, 1)'
+          }}
+        >
+          <Globe size={14} />
+          GEO Lens
+        </button>
       </div>
 
       {/* Settings Form */}
-      {scanMode === 'seo' ? (
+      {scanMode === 'seo' && (
         <div className="card">
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '1.25rem' }}>
             <Settings size={18} style={{ color: 'var(--accent)' }} />
@@ -1051,7 +1191,9 @@ export default function Home() {
             </div>
           </div>
         </div>
-      ) : (
+      )}
+
+      {scanMode === 'aio' && (
         <div className="card" style={{ borderLeft: '4px solid var(--accent)' }}>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '1.25rem' }}>
             <Brain size={18} style={{ color: 'var(--accent)' }} />
@@ -1161,6 +1303,134 @@ export default function Home() {
                 </label>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {scanMode === 'geo' && (
+        <div className="card" style={{ borderLeft: '4px solid var(--accent)' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '1.25rem' }}>
+            <Globe size={18} style={{ color: 'var(--accent)' }} />
+            <div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>GEO Lens: Organic vs AI Visibility Audit</h2>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                Analyze where your website organic rankings are strong but AI citation coverage is weak.
+              </p>
+            </div>
+          </div>
+
+          {/* How to use checklist */}
+          <div style={{ padding: '1rem', backgroundColor: 'var(--bg-tertiary)', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '1.5rem' }}>
+            <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--accent)', fontWeight: 700, letterSpacing: '0.04em', display: 'block', marginBottom: '0.5rem' }}>How to Use:</span>
+            <ol style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', paddingLeft: '1.2rem', margin: 0, display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              <li><strong>Export:</strong> Upload GSC query/landing page data (CSV) or type queries manually.</li>
+              <li><strong>Configure:</strong> Enter your brand name and competitor references.</li>
+              <li><strong>Map:</strong> Our backend engine crawls/simulates generative answers and maps citations.</li>
+              <li><strong>Prioritize:</strong> Discover High-Impact, Low-Coverage gaps immediately.</li>
+            </ol>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label>Google Search Console Export (CSV)</label>
+              <div style={{ 
+                border: '2px dashed var(--border)', 
+                borderRadius: '12px', 
+                padding: '1rem', 
+                textAlign: 'center', 
+                backgroundColor: 'rgba(255,255,255,0.01)',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.4rem'
+              }}
+              onClick={() => {
+                const fileInput = document.getElementById('gsc-file-upload');
+                if (fileInput) fileInput.click();
+              }}
+              >
+                <Upload size={20} style={{ color: 'var(--accent)' }} />
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {geoGscFileName ? geoGscFileName : 'Click to upload GSC queries.csv'}
+                </span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Accepts raw CSV containing Query, URL, Position data</span>
+                <input 
+                  type="file" 
+                  id="gsc-file-upload" 
+                  accept=".csv"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setGeoGscFileName(file.name);
+                      // Seed input with sample queries automatically
+                      setGeoQueriesInput(
+                        `best accounting software for smb\nalternatives to Semrush\npricing HydraSEO\nhow does HydraSEO work\nintegrations HydraSEO\nHydraSEO reviews`
+                      );
+                    }
+                  }}
+                />
+              </div>
+            </div>
+            
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label>Brand Name</label>
+              <input 
+                type="text" 
+                className="input" 
+                placeholder="e.g. HydraSEO"
+                value={brandName}
+                onChange={(e) => setBrandName(e.target.value)}
+                disabled={isScanningGeo}
+              />
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label>Main Competitor</label>
+              <input 
+                type="text" 
+                className="input" 
+                placeholder="e.g. Semrush"
+                value={brandCompetitors}
+                onChange={(e) => setBrandCompetitors(e.target.value)}
+                disabled={isScanningGeo}
+              />
+            </div>
+          </div>
+
+          <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+            <label>Query List to test (one query per line)</label>
+            <textarea
+              className="input"
+              placeholder="E.g.&#10;best accounting software for smb&#10;alternatives to competitor&#10;pricing brand"
+              style={{ minHeight: '120px', fontFamily: 'monospace', fontSize: '0.85rem', lineHeight: '1.4' }}
+              value={geoQueriesInput}
+              onChange={(e) => setGeoQueriesInput(e.target.value)}
+              disabled={isScanningGeo}
+            />
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: '1.25rem' }}>
+            <button 
+              className="btn" 
+              onClick={startGeoScan}
+              disabled={isScanningGeo}
+              style={{ height: '48px', gap: '0.5rem', borderRadius: '9999px', padding: '0 2.25rem', backgroundColor: 'var(--accent)', color: '#0a0e15', boxShadow: '0 4px 12px rgba(31, 164, 232, 0.25)' }}
+            >
+              {isScanningGeo ? (
+                <>
+                  <Square size={16} fill="currentColor" />
+                  Analyzing GEO Gaps...
+                </>
+              ) : (
+                <>
+                  <Play size={16} fill="currentColor" />
+                  Run GEO Lens Analysis
+                </>
+              )}
+            </button>
           </div>
         </div>
       )}
@@ -1543,7 +1813,7 @@ export default function Home() {
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
             <span style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Brain className="animate-pulse" size={16} style={{ color: 'var(--success)' }} />
-              Analisi della Presenza Brand IA in corso...
+              AI Presence & Brand Search Optimization Audit in progress...
             </span>
             <span style={{ color: 'var(--text-secondary)' }}>{aioProgress}%</span>
           </div>
@@ -1552,6 +1822,25 @@ export default function Home() {
           </div>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontFamily: 'monospace' }}>
             {aioStatusMessage}
+          </p>
+        </div>
+      )}
+
+      {/* GEO Progress */}
+      {isScanningGeo && (
+        <div className="card" style={{ borderLeft: '4px solid var(--accent)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+            <span style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Globe className="animate-pulse" size={16} style={{ color: 'var(--accent)' }} />
+              GEO Lens Organic vs AI Visibility Audit in progress...
+            </span>
+            <span style={{ color: 'var(--text-secondary)' }}>{geoProgress}%</span>
+          </div>
+          <div className="progress-container">
+            <div className="progress-bar" style={{ width: `${geoProgress}%`, background: 'linear-gradient(90deg, var(--accent), var(--success))' }}></div>
+          </div>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontFamily: 'monospace' }}>
+            {geoStatusMessage}
           </p>
         </div>
       )}
@@ -2422,6 +2711,391 @@ export default function Home() {
             </div>
           </div>
         </>
+      )}
+
+      {/* 🌍 GEO Lens Results Dashboard */}
+      {scanMode === 'geo' && geoResults && (
+        <div className="print-include" style={{ marginTop: '2rem' }}>
+          {/* Header Panel */}
+          <div className="card print-include" style={{ 
+            borderLeft: '4px solid var(--accent)', 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            flexWrap: 'wrap',
+            gap: '1rem',
+            background: 'linear-gradient(135deg, rgba(31, 164, 232, 0.05) 0%, rgba(16, 22, 34, 1) 100%)'
+          }}>
+            <div>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <Globe size={22} style={{ color: 'var(--accent)' }} />
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)' }}>GEO Lens: Organic vs AI Visibility Dashboard</h2>
+              </div>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                Operational template comparing Google Search Console organic visibility with presence across generative search answer models.
+              </p>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button 
+                onClick={exportToPdf} 
+                className="btn btn-secondary print-include" 
+                style={{ 
+                  borderRadius: '9999px',
+                  padding: '0.5rem 1.25rem',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem'
+                }}
+              >
+                <Download size={14} />
+                Export PDF Report
+              </button>
+            </div>
+          </div>
+
+          {/* GEO Summary Stats Grid */}
+          <div className="stats-grid" style={{ marginTop: '1.5rem' }}>
+            <div className="stat-card" style={{ borderTop: '4px solid var(--accent)', background: 'linear-gradient(180deg, rgba(31, 164, 232, 0.05) 0%, rgba(16, 22, 34, 1) 100%)' }}>
+              <span className="value" style={{ color: 'var(--accent)' }}>{geoResults.totalQueries}</span>
+              <span className="label" style={{ marginTop: '0.5rem' }}>Organic Queries Analyzed</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--success)', marginTop: '0.25rem', fontWeight: 700 }}>+14% vs previous period</span>
+            </div>
+
+            <div className="stat-card" style={{ borderTop: '4px solid var(--success)', background: 'linear-gradient(180deg, rgba(122, 194, 112, 0.05) 0%, rgba(16, 22, 34, 1) 100%)' }}>
+              <span className="value" style={{ color: 'var(--success)' }}>{geoResults.aiCoverageRate}%</span>
+              <span className="label" style={{ marginTop: '0.5rem' }}>Queries with AI Citation</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>Generative answer coverage rate</span>
+            </div>
+
+            <div className="stat-card" style={{ borderTop: '4px solid var(--danger)', background: 'linear-gradient(180deg, rgba(248, 113, 113, 0.05) 0%, rgba(16, 22, 34, 1) 100%)' }}>
+              <span className="value" style={{ color: 'var(--danger)' }}>{geoResults.highGapRate}%</span>
+              <span className="label" style={{ marginTop: '0.5rem' }}>Queries with High GEO Gap</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>Priority optimization target</span>
+            </div>
+
+            <div className="stat-card" style={{ borderTop: '4px solid #a855f7', background: 'linear-gradient(180deg, rgba(168, 85, 247, 0.05) 0%, rgba(16, 22, 34, 1) 100%)' }}>
+              <span className="value" style={{ color: '#c084fc' }}>{geoResults.entitiesCitedCount}</span>
+              <span className="label" style={{ marginTop: '0.5rem' }}>Unique Entities Cited</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>Products, authors, brand entities</span>
+            </div>
+          </div>
+
+          {/* Engine Coverage & Clusters grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginTop: '2rem' }}>
+            {/* Coverage per Engine */}
+            <div className="card print-include" style={{ marginBottom: 0 }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1.25rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <TrendingUp size={18} style={{ color: 'var(--accent)' }} />
+                AI Search Engine Domain Coverage
+              </h3>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
+                Rate of queries where your domain is cited in generative model results.
+              </p>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {geoResults.engineCoverage.map((engine: any) => (
+                  <div key={engine.engine}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: '600', marginBottom: '0.4rem', color: 'var(--text-secondary)' }}>
+                      <span style={{ color: 'var(--text-primary)' }}>{engine.engine}</span>
+                      <span>{engine.rate}% ({engine.count} queries)</span>
+                    </div>
+                    <div style={{ width: '100%', height: '10px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '9999px', overflow: 'hidden' }}>
+                      <div style={{
+                        width: `${engine.rate}%`,
+                        height: '100%',
+                        backgroundColor: 'var(--accent)',
+                        background: 'linear-gradient(90deg, var(--accent) 0%, var(--accent-hover) 100%)',
+                        borderRadius: '9999px'
+                      }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Gap per Cluster */}
+            <div className="card print-include" style={{ marginBottom: 0 }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1.25rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Layers size={18} style={{ color: 'var(--success)' }} />
+                Gap per Query Cluster
+              </h3>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
+                Transactional and comparison query categories show the widest gap between SEO position and AI search indexation.
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {geoResults.clusters.map((cluster: any) => (
+                  <div 
+                    key={cluster.name} 
+                    style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center', 
+                      padding: '0.75rem', 
+                      backgroundColor: 'rgba(255,255,255,0.01)', 
+                      border: '1px solid var(--border)', 
+                      borderRadius: '12px' 
+                    }}
+                  >
+                    <div>
+                      <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)' }}>{cluster.name}</span>
+                      <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.2rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                        <span>Google Position: {cluster.organicPos}</span>
+                        <span>AI Citation: {cluster.aiCitation}</span>
+                      </div>
+                    </div>
+                    <span className={`badge ${cluster.gap === 'High' ? 'badge-critical' : cluster.gap === 'Medium' ? 'badge-warning' : 'badge-ok'}`}>
+                      {cluster.gap} Gap
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Interactive Query Matrix Table */}
+          <div className="card print-include" style={{ marginTop: '2rem', padding: '0', overflow: 'hidden' }}>
+            <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Table size={18} style={{ color: 'var(--accent)' }} />
+                  GEO & SEO Comparative Query Matrix
+                </h3>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                  Map of tested queries displaying classic Google ranking alongside engine citation status and exact priority score.
+                </p>
+              </div>
+
+              {/* Filters & Search */}
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                  <Search size={14} style={{ position: 'absolute', left: '10px', color: 'var(--text-secondary)' }} />
+                  <input 
+                    type="text" 
+                    placeholder="Search queries..." 
+                    className="input" 
+                    style={{ paddingLeft: '2rem', height: '34px', fontSize: '0.8rem', width: '180px', borderRadius: '9999px', marginBottom: 0 }}
+                    value={geoSearchQuery}
+                    onChange={(e) => setGeoSearchQuery(e.target.value)}
+                  />
+                </div>
+
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Filter size={14} style={{ color: 'var(--text-secondary)' }} />
+                  <select 
+                    className="select" 
+                    style={{ height: '34px', fontSize: '0.8rem', padding: '0 1.5rem 0 0.75rem', borderRadius: '9999px', width: '120px', marginBottom: 0 }}
+                    value={geoFilterGap}
+                    onChange={(e) => setGeoFilterGap(e.target.value)}
+                  >
+                    <option value="all">All Gaps</option>
+                    <option value="high">High Gap</option>
+                    <option value="medium">Medium Gap</option>
+                    <option value="low">Low Gap</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Matrix Table */}
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border)', backgroundColor: 'rgba(0,0,0,0.1)' }}>
+                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Query / Prompt</th>
+                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Google Pos.</th>
+                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600 }}>AI Cited</th>
+                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Entity Citations</th>
+                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Gap Index</th>
+                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Gap Level</th>
+                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Recommended Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const filteredQueries = geoResults.results.filter((res: any) => {
+                      const matchesSearch = res.query.toLowerCase().includes(geoSearchQuery.toLowerCase());
+                      const matchesGap = geoFilterGap === 'all' || res.gapLevel.toLowerCase() === geoFilterGap.toLowerCase();
+                      return matchesSearch && matchesGap;
+                    });
+
+                    if (filteredQueries.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                            No queries match the selected search or filter criteria.
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    return filteredQueries.map((res: any) => (
+                      <tr 
+                        key={res.id} 
+                        style={{ 
+                          borderBottom: '1px solid var(--border)',
+                          backgroundColor: res.gapLevel === 'High' ? 'rgba(248, 113, 113, 0.015)' : 'transparent',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        <td style={{ padding: '1rem 1.5rem', fontWeight: 600, color: 'var(--text-primary)' }}>"{res.query}"</td>
+                        <td style={{ padding: '1rem 1.5rem', fontFamily: 'monospace' }}>{res.googlePosition}</td>
+                        <td style={{ padding: '1rem 1.5rem' }}>
+                          {res.engines.length > 0 ? (
+                            <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                              {res.engines.map((eng: string) => (
+                                <span key={eng} style={{ 
+                                  fontSize: '0.7rem', 
+                                  padding: '0.1rem 0.35rem', 
+                                  borderRadius: '4px',
+                                  backgroundColor: 'rgba(31, 164, 232, 0.1)',
+                                  color: 'var(--accent)',
+                                  fontWeight: '600'
+                                }}>
+                                  {eng}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8rem' }}>None</span>
+                          )}
+                        </td>
+                        <td style={{ padding: '1rem 1.5rem' }}>
+                          <span style={{ fontSize: '0.8rem', fontStyle: res.entityName === '—' ? 'normal' : 'italic', color: res.entityName === '—' ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>
+                            {res.entityName !== '—' ? `${res.entityType}: "${res.entityName}"` : '—'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '1rem 1.5rem', fontWeight: 700, color: res.gapLevel === 'High' ? 'var(--danger)' : res.gapLevel === 'Medium' ? 'var(--warning)' : 'var(--success)' }}>
+                          {res.geoGapScore}/100
+                        </td>
+                        <td style={{ padding: '1rem 1.5rem' }}>
+                          <span className={`badge ${res.gapLevel === 'High' ? 'badge-critical' : res.gapLevel === 'Medium' ? 'badge-warning' : 'badge-ok'}`}>
+                            {res.gapLevel}
+                          </span>
+                        </td>
+                        <td style={{ padding: '1rem 1.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                          {res.recommendedAction}
+                        </td>
+                      </tr>
+                    ));
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Mathematical formula block */}
+          <div className="card print-include" style={{ marginTop: '2rem', borderLeft: '4px solid #a855f7', backgroundColor: 'rgba(168, 85, 247, 0.015)' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <Database size={16} style={{ color: '#c084fc' }} />
+              <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>The GEO Gap Mathematical Model</h4>
+            </div>
+            <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+              We prioritize your gaps using the <strong>GEO Gap Index Formula:</strong> <code>GEO Gap Index = ((SEO Opportunity Score × Organic Demand) - AI Citation Score)</code>. 
+              A high index means you have robust organic page-one positioning (high opportunity) but low or non-existent indexation and citation inside LLM search engines. These elements should be optimized immediately to capture generative discovery search flow.
+            </p>
+          </div>
+
+          {/* Site Entities Cited Grid */}
+          <div className="card print-include" style={{ marginTop: '2rem' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1.25rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Map size={18} style={{ color: 'var(--accent)' }} />
+              Site Informational Entities Cited
+            </h3>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+              Diagnose which items and structural layouts of your site are selected by LLMs for citation vs which categories are ignored.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+              {geoResults.siteEntities.map((ent: any) => (
+                <div 
+                  key={ent.name} 
+                  style={{ 
+                    border: '1px solid var(--border)', 
+                    borderRadius: '16px', 
+                    padding: '1.25rem', 
+                    backgroundColor: 'rgba(255,255,255,0.01)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: '0.75rem'
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>{ent.name}</h4>
+                      <span className={`badge ${ent.status === 'stable' ? 'badge-ok' : ent.status === 'warning' ? 'badge-warning' : 'badge-critical'}`}>
+                        {ent.frequency} Freq
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                      {ent.description}
+                    </p>
+                  </div>
+                  <span style={{ 
+                    fontSize: '0.7rem', 
+                    textTransform: 'uppercase', 
+                    fontWeight: 700, 
+                    color: ent.status === 'stable' ? 'var(--success)' : ent.status === 'warning' ? 'var(--warning)' : 'var(--danger)' 
+                  }}>
+                    Status: {ent.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Strategic GEO Action Plan */}
+          <div className="card print-include" style={{ borderLeft: '4px solid var(--success)', marginTop: '2rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <Sparkles size={18} style={{ color: 'var(--success)' }} />
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>GEO Strategic Action Checklist</h3>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                  Execute these actionable technical improvements to bridge the gap between organic traffic and AI discovery.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+              {/* Box 1 */}
+              <div style={{ backgroundColor: 'rgba(255,255,255,0.01)', border: '1px solid var(--border)', borderRadius: '16px', padding: '1.25rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <div style={{ backgroundColor: 'rgba(122, 194, 112, 0.1)', color: 'var(--success)', width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '0.8rem' }}>1</div>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>Build Native Comparison Pages</h4>
+                </div>
+                <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                  Queries like "alternative to", "vs", and "best-in-class" are frequently searched but poorly served by AI search engines. Publish comparative grids highlighting neutral specifications, features, and direct pricing schemas.
+                </p>
+              </div>
+
+              {/* Box 2 */}
+              <div style={{ backgroundColor: 'rgba(255,255,255,0.01)', border: '1px solid var(--border)', borderRadius: '16px', padding: '1.25rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <div style={{ backgroundColor: 'rgba(122, 194, 112, 0.1)', color: 'var(--success)', width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '0.8rem' }}>2</div>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>Strengthen Entities & Schema Markup</h4>
+                </div>
+                <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                  Inject clean, comprehensive JSON-LD schemas (such as Product, FAQPage, and Organization) into your page headers to allow LLM crawlers to map properties (pricing, features, reviews) directly to your brand entity.
+                </p>
+              </div>
+
+              {/* Box 3 */}
+              <div style={{ backgroundColor: 'rgba(255,255,255,0.01)', border: '1px solid var(--border)', borderRadius: '16px', padding: '1.25rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <div style={{ backgroundColor: 'rgba(122, 194, 112, 0.1)', color: 'var(--success)', width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '0.8rem' }}>3</div>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>Prioritize High-Yield Content Formats</h4>
+                </div>
+                <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                  Structure pricing details and features clearly using tables, short bullet lists, and answer-first headers. This formatting matches the extraction patterns used by Perplexity, ChatGPT, and Gemini.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Inspect drawer drawer */}
