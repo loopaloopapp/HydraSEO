@@ -73,32 +73,44 @@ export async function POST(req: NextRequest) {
     const descriptionContext = crawledDescription || `Premium platform focused on ${industry}`;
     const cleanKeywords = detectedKeywords.length > 0 ? detectedKeywords : ['optimization', 'technology', 'efficiency', 'innovation'];
 
-    // Generate Share of Voice dynamically but realistically
-    const brandSov = Math.round(35 + Math.random() * 25); // 35% - 60%
+    // Deterministic randomizer based on brand
+    const getStableRandom = (seed: string) => {
+      let hash = 0;
+      for (let i = 0; i < seed.length; i++) {
+        hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+        hash |= 0;
+      }
+      return Math.abs(hash) / 2147483647;
+    };
+
+    const brandSeed = brandName.toLowerCase();
+
+    // Generate Share of Voice dynamically but realistically & deterministically
+    const brandSov = Math.round(35 + getStableRandom(brandSeed + 'sov') * 25); // 35% - 60%
     const remainingShare = 100 - brandSov;
     const compCount = competitorList.length;
     const compShares = competitorList.map((comp: string, idx: number) => {
       let share = 0;
       if (idx === compCount - 1) {
-        share = remainingShare - competitorList.slice(0, idx).reduce((acc: number, _: string) => acc + Math.round((remainingShare / compCount) * (0.8 + Math.random()*0.4)), 0);
+        share = remainingShare - competitorList.slice(0, idx).reduce((acc: number, _: string) => acc + Math.round((remainingShare / compCount) * (0.8 + getStableRandom(brandSeed + comp)*0.4)), 0);
       } else {
-        share = Math.round((remainingShare / compCount) * (0.8 + Math.random()*0.4));
+        share = Math.round((remainingShare / compCount) * (0.8 + getStableRandom(brandSeed + comp)*0.4));
       }
       return {
         name: comp,
         shareOfVoice: Math.max(5, share),
-        visibilityIndex: Number((4 + Math.random() * 4.5).toFixed(1)),
-        sentiment: Math.round(55 + Math.random() * 30) // 55% to 85% positive
+        visibilityIndex: Number((4 + getStableRandom(brandSeed + comp + 'vis') * 4.5).toFixed(1)),
+        sentiment: Math.round(55 + getStableRandom(brandSeed + comp + 'sent') * 30) // 55% to 85% positive
       };
     });
 
     const overallMetrics = {
       shareOfVoice: brandSov,
-      visibilityIndex: Number((6.5 + Math.random() * 2.8).toFixed(1)), // 6.5 to 9.3
-      sentimentPositive: Math.round(70 + Math.random() * 20), // 70-90% positive
-      sentimentNeutral: Math.round(8 + Math.random() * 12),
+      visibilityIndex: Number((6.5 + getStableRandom(brandSeed + 'vix') * 2.8).toFixed(1)), // 6.5 to 9.3
+      sentimentPositive: Math.round(70 + getStableRandom(brandSeed + 'pos') * 20), // 70-90% positive
+      sentimentNeutral: Math.round(8 + getStableRandom(brandSeed + 'neu') * 12),
       sentimentNegative: 0, // calculated below
-      citationRate: Math.round(30 + Math.random() * 45) // 30% to 75%
+      citationRate: Math.round(30 + getStableRandom(brandSeed + 'cit') * 45) // 30% to 75%
     };
     overallMetrics.sentimentNegative = 100 - overallMetrics.sentimentPositive - overallMetrics.sentimentNeutral;
 
@@ -238,11 +250,11 @@ For further information, you can browse practical setup guides directly on the o
     ];
 
     const engineSoV = [
-      { engine: 'ChatGPT (GPT-4o)', sov: 42, citations: 12 },
-      { engine: 'Gemini (1.5 Pro)', sov: 55, citations: 18 },
-      { engine: 'Claude (3.5 Sonnet)', sov: 38, citations: 8 },
-      { engine: 'Perplexity AI', sov: 65, citations: 22 },
-      { engine: 'Microsoft Copilot', sov: 20, citations: 4 }
+      { engine: 'ChatGPT (GPT-4o)', sov: Math.round(20 + getStableRandom(brandSeed + 'gpt') * 40), citations: Math.round(5 + getStableRandom(brandSeed + 'gptc') * 20) },
+      { engine: 'Gemini (1.5 Pro)', sov: Math.round(20 + getStableRandom(brandSeed + 'gem') * 40), citations: Math.round(5 + getStableRandom(brandSeed + 'gemc') * 20) },
+      { engine: 'Claude (3.5 Sonnet)', sov: Math.round(20 + getStableRandom(brandSeed + 'cla') * 40), citations: Math.round(5 + getStableRandom(brandSeed + 'clac') * 20) },
+      { engine: 'Perplexity AI', sov: Math.round(30 + getStableRandom(brandSeed + 'per') * 50), citations: Math.round(10 + getStableRandom(brandSeed + 'perc') * 30) },
+      { engine: 'Microsoft Copilot', sov: Math.round(15 + getStableRandom(brandSeed + 'cop') * 30), citations: Math.round(2 + getStableRandom(brandSeed + 'copc') * 10) }
     ].filter(e => {
         const engineKey = e.engine.split(' ')[0].toLowerCase();
         return selectedEngines.includes(engineKey) || selectedEngines.some((se: string) => e.engine.toLowerCase().includes(se));
@@ -250,7 +262,7 @@ For further information, you can browse practical setup guides directly on the o
 
     const narratives = narrativeProfile.brandAttributes.map(attr => ({
         concept: attr.name,
-        frequency: Math.round(50 + Math.random() * 40),
+        frequency: Math.round(50 + getStableRandom(brandSeed + attr.name) * 40),
         sentiment: attr.positive ? 'positive' : 'negative'
     }));
 
