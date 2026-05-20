@@ -25,7 +25,7 @@ export default function AioPage() {
   const [brandIndustry, setBrandIndustry] = useState('');
   const [brandCompetitors, setBrandCompetitors] = useState('');
   const [brandUrl, setBrandUrl] = useState('');
-  const [selectedAioEngines, setSelectedAioEngines] = useState<string[]>(['chatgpt', 'gemini', 'claude', 'perplexity', 'copilot']);
+  const [selectedAioEngines, setSelectedAioEngines] = useState<string[]>(['chatgpt', 'gemini', 'claude', 'perplexity', 'copilot', 'deepseek']);
   const [isScanningAio, setIsScanningAio] = useState(false);
   const [aioProgress, setAioProgress] = useState(0);
   const [aioStatusMessage, setAioStatusMessage] = useState('');
@@ -443,7 +443,8 @@ export default function AioPage() {
                 { id: 'gemini', name: 'Gemini (1.5 Pro)' },
                 { id: 'claude', name: 'Claude (3.5 Sonnet)' },
                 { id: 'perplexity', name: 'Perplexity AI' },
-                { id: 'copilot', name: 'Microsoft Copilot' }
+                { id: 'copilot', name: 'Microsoft Copilot' },
+                { id: 'deepseek', name: 'DeepSeek (V3)' }
               ].map(engine => (
                 <label key={engine.id} className="checkbox-label">
                   <input 
