@@ -167,27 +167,38 @@ Return ONLY a valid JSON object without markdown codeblocks or extra text.
     }
 
     const aiData = await aiResponse.json();
-    const parsedData = JSON.parse(aiData.choices[0].message.content);
+    let rawContent = aiData.choices[0].message.content.trim();
+    if (rawContent.startsWith('```json')) {
+      rawContent = rawContent.replace(/^```json/, '').replace(/```$/, '').trim();
+    }
+    
+    let parsedData: any = {};
+    try {
+      parsedData = JSON.parse(rawContent);
+    } catch (parseErr) {
+      console.error("OpenAI JSON Parse Error:", parseErr, rawContent);
+      throw new Error("OpenAI returned malformed JSON.");
+    }
 
     // Map prompts to frontend expected structure
-    const mappedPrompts = parsedData.prompts.map((p: any) => ({
+    const mappedPrompts = (parsedData.prompts || []).map((p: any) => ({
       ...p,
       citesBrand: p.citationStatus === 'cited',
       rankPosition: p.positioning === 'primary' ? 1 : (p.positioning === 'secondary' ? 2 : 'N/A'),
-      responseHtml: p.response,
+      responseHtml: p.response || '',
       citationsFound: p.citationUrl || 'None',
       mentionedCompetitors: Array.isArray(p.mentionedCompetitors) ? p.mentionedCompetitors : []
     }));
 
-    const narratives = parsedData.narrativeProfile.brandAttributes.map((attr: any) => ({
-        concept: attr.name,
+    const narratives = (parsedData.narrativeProfile?.brandAttributes || []).map((attr: any) => ({
+        concept: attr.name || 'Brand Sentiment',
         frequency: Math.round(50 + Math.random() * 40),
         sentiment: attr.positive ? 'positive' : 'negative'
     }));
 
-    const mappedRecommendations = parsedData.aioRecommendations.map((rec: any) => ({
-        action: rec.title,
-        details: rec.description
+    const mappedRecommendations = (parsedData.aioRecommendations || []).map((rec: any) => ({
+        action: rec.title || 'Recommendation',
+        details: rec.description || ''
     }));
 
     return NextResponse.json({
@@ -201,17 +212,17 @@ Return ONLY a valid JSON object without markdown codeblocks or extra text.
         headings: crawledHeadings,
         detectedKeywords: cleanKeywords
       } : null,
-      shareOfVoice: parsedData.overallMetrics.shareOfVoice,
-      sentimentScore: parsedData.overallMetrics.sentimentPositive,
-      citationsCount: parsedData.overallMetrics.citationRate,
-      sentimentStatus: parsedData.overallMetrics.sentimentPositive > 70 ? 'Leading' : 'Emerging',
-      engineSoV: parsedData.engineSoV,
+      shareOfVoice: parsedData.overallMetrics?.shareOfVoice || 0,
+      sentimentScore: parsedData.overallMetrics?.sentimentPositive || 0,
+      citationsCount: parsedData.overallMetrics?.citationRate || 0,
+      sentimentStatus: (parsedData.overallMetrics?.sentimentPositive || 0) > 70 ? 'Leading' : 'Emerging',
+      engineSoV: parsedData.engineSoV || [],
       narratives,
       prompts: mappedPrompts,
       recommendations: mappedRecommendations,
-      overallMetrics: parsedData.overallMetrics,
-      competitorMetrics: parsedData.competitorMetrics,
-      narrativeProfile: parsedData.narrativeProfile
+      overallMetrics: parsedData.overallMetrics || {},
+      competitorMetrics: parsedData.competitorMetrics || [],
+      narrativeProfile: parsedData.narrativeProfile || {}
     });
 
   } catch (error: any) {
