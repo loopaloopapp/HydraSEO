@@ -151,6 +151,38 @@ export default function AioPage() {
     localStorage.removeItem('nvms_active_user');
   };
 
+  // Create a local admin account with effectively infinite scans
+  const createAdminAccount = (emailOverride?: string) => {
+    const email = emailOverride || 'admin@hydraseo.local';
+    const newUser = {
+      name: 'Hydra Admin',
+      email,
+      avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${email}`
+    };
+
+    setUser(newUser);
+    const planStr = 'Ultimate (Infinite)';
+    setUserPlan(planStr);
+    localStorage.setItem('hydraseo_active_user', JSON.stringify(newUser));
+    localStorage.setItem(`hydraseo_user_plan_${email}`, planStr);
+    // Use a very large number to represent 'infinite' scans in local storage
+    const bigNum = 999999999;
+    localStorage.setItem(`hydraseo_user_scans_${email}`, String(bigNum));
+    setGlobalScanCount(bigNum);
+
+    // Update fingerprint DB so this device is associated with the admin
+    try {
+      const fp = hardwareFingerprint || getDeviceFingerprint();
+      const currentDb = localStorage.getItem('hydraseo_fingerprint_db');
+      let latestFpDb: Record<string, { totalScans: number; emails: string[] }> = {};
+      if (currentDb) latestFpDb = JSON.parse(currentDb);
+      latestFpDb[fp] = { totalScans: bigNum, emails: Array.from(new Set([...(latestFpDb[fp]?.emails || []), email])) };
+      localStorage.setItem('hydraseo_fingerprint_db', JSON.stringify(latestFpDb));
+    } catch (e) {
+      console.error('Error creating admin fingerprint entry', e);
+    }
+  };
+
   const startAioScan = async () => {
     if (!brandName || !brandIndustry) return;
 
@@ -307,9 +339,14 @@ export default function AioPage() {
               </button>
             </div>
           ) : (
-            <button onClick={() => setShowAuthModal(true)} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 1.5rem', borderRadius: '9999px', fontSize: '0.8rem', backgroundColor: 'transparent', color: 'var(--accent)', border: '1.5px solid var(--accent)', height: '36px' }}>
-              Sign Up / Sign In with Google
-            </button>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <button onClick={() => setShowAuthModal(true)} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 1.5rem', borderRadius: '9999px', fontSize: '0.8rem', backgroundColor: 'transparent', color: 'var(--accent)', border: '1.5px solid var(--accent)', height: '36px' }}>
+                Sign Up / Sign In with Google
+              </button>
+              <button onClick={() => createAdminAccount()} className="btn btn-ghost" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 1rem', borderRadius: '9999px', fontSize: '0.75rem', backgroundColor: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border)', height: '36px' }} title="Create local admin account with infinite scans">
+                Create Admin
+              </button>
+            </div>
           )}
         </div>
       </header>

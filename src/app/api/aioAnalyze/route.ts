@@ -8,6 +8,8 @@ export async function POST(req: NextRequest) {
   try {
     const { brandName, industry, competitors, url, engines } = await req.json();
 
+    console.log('AIO Analyze request payload', { brandName, industry, competitors, url, engines });
+
     if (!brandName) {
       return NextResponse.json({ error: 'Brand name is required' }, { status: 400 });
     }
@@ -287,6 +289,12 @@ Return ONLY a valid JSON object without markdown codeblocks or extra text.
         }
       }
     }
+
+    console.log('AIO parsedData keys', Object.keys(parsedData || {}));
+    console.log('AIO parsedData sample', {
+      overallMetrics: parsedData.overallMetrics || null,
+      promptsCount: Array.isArray(parsedData.prompts) ? parsedData.prompts.length : 0
+    });
 
     // Map prompts to frontend expected structure
     const mappedPrompts = (parsedData.prompts || []).map((p: any) => ({
